@@ -1,0 +1,44 @@
+@import "tailwindcss";
+
+@theme {
+  --color-gold-primary: #B8860B;
+  --color-gold-primary-hover: #DAA520;
+  --color-gold-light-bg: #FFF8E7;
+  --color-gold-accent: #CD853F;
+  --color-gold-accent-hover: #D2691E;
+  --color-text-dark: #4A3728;
+  --color-background-main: #FDFBF5;
+  --color-border-gold: #E0CBA8;
+}
+
+:root {
+  --background: var(--color-background-main);
+  --foreground: var(--color-text-dark);
+}
+
+body {
+  background-color: var(--color-background-main);
+  color: var(--color-text-dark);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.quiz-card {
+  background-color: var(--color-gold-light-bg);
+  border: 1px solid var(--color-border-gold);
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(136, 101, 39, 0.1);
+}
+
+.btn-gold {
+  background-color: var(--color-gold-primary);
+  color: white;
+  padding: 0.75rem 1.25rem;
+  border-radius: 8px;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.btn-gold:hover {
+  background-color: var(--color-gold-primary-hover);
+  transform: scale(1.02);
+}

@@ -107,7 +107,7 @@
       { "id": "D", "text": "Filemom" }
     ],
     "answer": "C",
-    "reference": "Apocalipse"
+    "reference": "Apocalipse 22:21"
   },
   {
     "question": "Qual dos discípulos negou Jesus três vezes?",
@@ -140,7 +140,7 @@
       { "id": "D", "text": "Paulo" }
     ],
     "answer": "D",
-    "reference": "Diversas epístolas atribuídas a Paulo"
+    "reference": "Atos 9:15, Romanos 1:1"
   },
   {
     "question": "Qual destes personagens foi jogado na cova dos leões?",
@@ -173,7 +173,7 @@
       { "id": "D", "text": "Isaías" }
     ],
     "answer": "B",
-    "reference": "Salmos"
+    "reference": "Livro de Salmos (150 capítulos)"
   },
   {
     "question": "Quem foi o primeiro homem criado por Deus?",
@@ -217,7 +217,7 @@
       { "id": "D", "text": "27" }
     ],
     "answer": "D",
-    "reference": "Diversos livros do Novo Testamento"
+    "reference": "Índice da Bíblia (Mateus a Apocalipse)"
   },
   {
     "question": "Com qual arma Davi derrotou o gigante Golias?",
@@ -283,7 +283,7 @@
       { "id": "D", "text": "Rute" }
     ],
     "answer": "B",
-    "reference": "Livro de Ester (ex: Ester 7:3-4)"
+    "reference": "Ester 7:3-4"
   },
   {
     "question": "De qual cidade Deus chamou Abrão (mais tarde Abraão) para ir a uma terra que lhe mostraria?",
@@ -294,7 +294,7 @@
       { "id": "D", "text": "Jerusalém" }
     ],
     "answer": "C",
-    "reference": "Gênesis 11:31, Gênesis 12:1"
+    "reference": "Gênesis 12:1"
   },
   {
     "question": "No Sermão da Montanha, quem Jesus disse que 'verá a Deus'?",
@@ -338,7 +338,7 @@
       { "id": "D", "text": "Sara" }
     ],
     "answer": "C",
-    "reference": "Gênesis 24:67, Gênesis 25:21-26"
+    "reference": "Gênesis 24:67"
   },
   {
     "question": "Qual profeta foi engolido por um grande peixe após tentar fugir da ordem de Deus para ir a Nínive?",
@@ -349,7 +349,7 @@
       { "id": "D", "text": "Jeremias" }
     ],
     "answer": "B",
-    "reference": "Jonas 1:1-17"
+    "reference": "Jonas 1:17"
   },
   {
     "question": "Qual foi a primeira praga enviada por Deus ao Egito?",
@@ -363,7 +363,7 @@
     "reference": "Êxodo 7:19-21"
   },
   {
-    "question": "Quem foi o sucessor de Elias como profeta?",
+    "question": "Quem foi the successor de Elias como profeta?",
     "options": [
       { "id": "A", "text": "Ageu" },
       { "id": "B", "text": "Natã" },
@@ -382,6 +382,6 @@
       { "id": "D", "text": "Mateus" }
     ],
     "answer": "B",
-    "reference": "Consenso acadêmico sobre a prioridade de Marcos"
+    "reference": "Introdução ao Evangelho de Marcos"
   }
 ]
