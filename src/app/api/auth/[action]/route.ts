@@ -1,13 +1,23 @@
 import { prisma } from '@/lib/prisma';
 import { hashEmail, hashPassword, comparePassword, signToken, verifyToken } from '@/lib/auth-utils';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server'; // Alterado: Importado NextRequest
 import { cookies } from 'next/headers';
 
+// --- INÍCIO DA ALTERAÇÃO ---
+// Definindo um tipo para o contexto assíncrono do Next.js 15/16
+type RouteContext = {
+  params: Promise<{ action: string }>;
+};
+// --- FIM DA ALTERAÇÃO ---
+
 export async function POST(
-  request: Request,
-  { params }: { params: { action: string } }
+  request: NextRequest, // Alterado: De Request para NextRequest
+  context: RouteContext // Alterado: Tipagem explícita da Promise
 ) {
-  const { action } = await params;
+  // --- INÍCIO DA ALTERAÇÃO ---
+  // Acesso assíncrono aos parâmetros da rota
+  const { action } = await context.params;
+  // --- FIM DA ALTERAÇÃO ---
 
   try {
     const body = await request.json();
@@ -21,7 +31,6 @@ export async function POST(
       const emailHash = hashEmail(email);
       const passwordHash = await hashPassword(password);
 
-      // Verificar se username ou emailHash já existem
       const existingUser = await prisma.user.findFirst({
         where: {
           OR: [{ username }, { emailHash }]
@@ -80,10 +89,10 @@ export async function POST(
 }
 
 export async function DELETE(
-  request: Request,
-  { params }: { params: { action: string } }
+  request: NextRequest, // Alterado: De Request para NextRequest
+  context: RouteContext // Alterado: Tipagem explícita da Promise
 ) {
-  const { action } = await params;
+  const { action } = await context.params; // Adicionado await
 
   if (action === 'account') {
     try {
@@ -93,9 +102,8 @@ export async function DELETE(
       const decoded = verifyToken(token);
       if (!decoded) return NextResponse.json({ error: 'Sessão inválida' }, { status: 401 });
 
-      // Deletar o usuário (o Ranking será deletado por Cascade devido ao Prisma)
       await prisma.user.delete({
-        where: { id: decoded.userId }
+        where: { id: (decoded as any).userId }
       });
 
       (await cookies()).delete('auth_token');
@@ -111,19 +119,20 @@ export async function DELETE(
 }
 
 export async function GET(
-  request: Request,
-  { params }: { params: { action: string } }
+  request: NextRequest, // Alterado: De Request para NextRequest
+  context: RouteContext // Alterado: Tipagem explícita da Promise
 ) {
-  const { action } = await params;
+  const { action } = await context.params; // Adicionado await
 
   if (action === 'me') {
-    const token = (await cookies()).get('auth_token')?.value;
+    const cookieStore = await cookies(); // Comentário: Melhor prática armazenar a promise resolvida
+    const token = cookieStore.get('auth_token')?.value;
     if (!token) return NextResponse.json({ user: null });
 
     const decoded = verifyToken(token);
     if (!decoded) return NextResponse.json({ user: null });
 
-    return NextResponse.json({ user: { username: decoded.username } });
+    return NextResponse.json({ user: { username: (decoded as any).username } });
   }
 
   if (action === 'logout') {
