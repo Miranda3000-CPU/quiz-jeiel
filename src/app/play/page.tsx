@@ -20,30 +20,38 @@ export default function PlayPage() {
   const [hasAnswered, setHasAnswered] = useState(false);
   const [feedback, setFeedback] = useState<{ isCorrect: boolean; reference: string | null } | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const transitionTimerRef = useRef<NodeJS.Timeout | null>(null);
   const isProcessingRef = useRef(false);
 
-  const TIME_PER_QUESTION = 30;
+  const TOTAL_TIME_SECONDS = 30;
   const TOTAL_QUESTIONS_COUNT = 15;
 
   useEffect(() => {
     const shuffled = [...questionsData].sort(() => Math.random() - 0.5);
     setQuestions(shuffled.slice(0, TOTAL_QUESTIONS_COUNT));
-    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+      if (transitionTimerRef.current) clearTimeout(transitionTimerRef.current);
+    };
   }, []);
 
   useEffect(() => {
-    if (questions.length > 0 && !hasAnswered && !showResult) startTimer();
-    return () => { if (timerRef.current) clearInterval(timerRef.current); };
-  }, [currentIndex, hasAnswered, questions.length, showResult]);
+    if (questions.length > 0 && !showResult && !timerRef.current) startTimer();
+    if (showResult && timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+  }, [questions.length, showResult]);
 
   const startTimer = () => {
-    if (timerRef.current) clearInterval(timerRef.current);
-    setTimeLeft(TIME_PER_QUESTION);
+    setTimeLeft(TOTAL_TIME_SECONDS);
     timerRef.current = setInterval(() => {
       setTimeLeft(prev => {
         if (prev <= 1) {
           if (timerRef.current) clearInterval(timerRef.current);
-          handleAnswer('');
+          timerRef.current = null;
+          if (transitionTimerRef.current) clearTimeout(transitionTimerRef.current);
+          setShowResult(true);
           return 0;
         }
         return prev - 1;
@@ -57,14 +65,14 @@ export default function PlayPage() {
     if (!currentQuestion) return;
     isProcessingRef.current = true;
     setHasAnswered(true);
-    if (timerRef.current) clearInterval(timerRef.current);
     const isCorrect = selectedId === currentQuestion.answer;
     if (isCorrect) setScore(prev => prev + 10);
     setFeedback({
       isCorrect,
       reference: isCorrect ? null : (currentQuestion.reference || 'Verifique na Bíblia'),
     });
-    setTimeout(() => {
+    transitionTimerRef.current = setTimeout(() => {
+      transitionTimerRef.current = null;
       if (currentIndex + 1 < questions.length) {
         setCurrentIndex(prev => prev + 1);
         setHasAnswered(false);
@@ -102,13 +110,13 @@ export default function PlayPage() {
       <div className="flex justify-between items-center mb-8 gap-3">
         <span className="text-gold-primary font-bold">Questão {currentIndex + 1} / {questions.length}</span>
         <div className="flex items-center gap-3">
-          <span className={`font-bold ${timeLeft <= 5 ? 'text-red-500 animate-pulse' : 'text-gold-primary'}`}>{timeLeft}s</span>
+          <span className={`font-bold ${timeLeft <= 5 ? 'text-red-500 animate-pulse' : 'text-gold-primary'}`} aria-label="Tempo restante da partida">{timeLeft}s</span>
           <span className="bg-gold-light-bg px-3 py-1 rounded-full text-sm font-bold border border-border-gold text-gold-accent">Pontos: {score}</span>
         </div>
       </div>
       <section className="quiz-card p-8 relative overflow-hidden">
         <div className="absolute top-0 left-0 w-full h-2 bg-gray-100">
-          <div className="h-full bg-gold-primary transition-all duration-1000 ease-linear" style={{ width: `${(timeLeft / TIME_PER_QUESTION) * 100}%` }} />
+          <div className="h-full bg-gold-primary transition-all duration-1000 ease-linear" style={{ width: `${(timeLeft / TOTAL_TIME_SECONDS) * 100}%` }} />
         </div>
         <h3 className="text-xl font-bold mb-8 text-text-dark mt-4">{current?.question}</h3>
         <div className="grid grid-cols-1 gap-3">
