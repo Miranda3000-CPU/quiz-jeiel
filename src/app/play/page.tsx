@@ -13,6 +13,12 @@ interface Question {
   reference?: string;
 }
 
+interface AnswerResult {
+  question: string;
+  isCorrect: boolean;
+  reference: string;
+}
+
 export default function PlayPage() {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -21,6 +27,9 @@ export default function PlayPage() {
   const [timeLeft, setTimeLeft] = useState(30);
   const [hasAnswered, setHasAnswered] = useState(false);
   const [feedback, setFeedback] = useState<{ isCorrect: boolean; reference: string | null } | null>(null);
+  const [answerResults, setAnswerResults] = useState<AnswerResult[]>([]);
+  const currentQuestionRef = useRef<Question | null>(null);
+  const hasAnsweredRef = useRef(false);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const transitionTimerRef = useRef<NodeJS.Timeout | null>(null);
   const isProcessingRef = useRef(false);
@@ -39,6 +48,11 @@ export default function PlayPage() {
   }, []);
 
   useEffect(() => {
+    currentQuestionRef.current = questions[currentIndex] ?? null;
+    hasAnsweredRef.current = hasAnswered;
+  }, [questions, currentIndex, hasAnswered]);
+
+  useEffect(() => {
     if (questions.length > 0 && !showResult && !timerRef.current) startTimer();
     if (showResult && timerRef.current) {
       clearInterval(timerRef.current);
@@ -54,6 +68,10 @@ export default function PlayPage() {
           if (timerRef.current) clearInterval(timerRef.current);
           timerRef.current = null;
           if (transitionTimerRef.current) clearTimeout(transitionTimerRef.current);
+          const unanswered = currentQuestionRef.current;
+          if (unanswered && !hasAnsweredRef.current) {
+            setAnswerResults(prev => [...prev, { question: unanswered.question, isCorrect: false, reference: unanswered.reference || 'Referência não informada' }]);
+          }
           setShowResult(true);
           return 0;
         }
@@ -68,7 +86,9 @@ export default function PlayPage() {
     if (!currentQuestion) return;
     isProcessingRef.current = true;
     setHasAnswered(true);
+    hasAnsweredRef.current = true;
     const isCorrect = selectedId === currentQuestion.answer;
+    setAnswerResults(prev => [...prev, { question: currentQuestion.question, isCorrect, reference: currentQuestion.reference || 'Referência não informada' }]);
     if (isCorrect) setScore(prev => prev + 10);
     setFeedback({
       isCorrect,
@@ -94,10 +114,30 @@ export default function PlayPage() {
     return (
       <main className="min-h-screen flex items-center justify-center p-4">
         <section className="quiz-card max-w-md w-full p-8 text-center">
-          <h2 className="text-3xl font-bold text-gold-primary mb-4">Fim de jogo!</h2>
-          <p className="text-xl mb-2">Sua pontuação</p>
-          <p className="text-5xl font-bold text-gold-accent mb-6">{score}</p>
-          <p className="text-sm text-gray-500 mb-6">A pontuação vale apenas para esta partida e não é salva.</p>
+          <h2 className="text-3xl font-bold text-gold-primary mb-4">Resultado da partida</h2>
+          <div className="grid grid-cols-2 gap-4 mb-6">
+            <div className="rounded-xl border border-green-200 bg-green-50 p-4">
+              <p className="text-sm text-green-700">Acertos</p>
+              <p className="text-4xl font-bold text-green-700">{answerResults.filter(result => result.isCorrect).length}</p>
+            </div>
+            <div className="rounded-xl border border-red-200 bg-red-50 p-4">
+              <p className="text-sm text-red-700">Erros</p>
+              <p className="text-4xl font-bold text-red-700">{answerResults.filter(result => !result.isCorrect).length}</p>
+            </div>
+          </div>
+          {answerResults.some(result => !result.isCorrect) && (
+            <section className="text-left mb-6">
+              <h3 className="font-bold text-gold-primary mb-3">Referências para estudar as questões erradas</h3>
+              <ul className="space-y-3">
+                {answerResults.filter(result => !result.isCorrect).map((result, index) => (
+                  <li key={index} className="rounded-lg border border-border-gold p-3">
+                    <p className="text-sm font-medium mb-1">{result.question}</p>
+                    <p className="text-sm text-gold-accent">Leia: <span className="font-bold italic">{result.reference}</span></p>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
           <div className="space-y-3">
             <button onClick={() => window.location.reload()} className="btn-gold w-full">Jogar novamente</button>
             <Link href="/" className="block text-center text-sm text-gray-500 hover:underline">Voltar ao início</Link>
