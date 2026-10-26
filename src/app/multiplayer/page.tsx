@@ -15,6 +15,12 @@ interface Player {
   isGuest?: boolean;
 }
 
+interface AnswerResult {
+  question: string;
+  isCorrect: boolean;
+  reference: string;
+}
+
 function MultiplayerContent() {
   const searchParams = useSearchParams();
   const initialRoomId = searchParams.get('id') || '';
@@ -36,6 +42,9 @@ function MultiplayerContent() {
   const [hasAnswered, setHasAnswered] = useState(false);
   const [answeredCount, setAnsweredCount] = useState(0);
   const [showResults, setShowResults] = useState(false);
+  const [answerResults, setAnswerResults] = useState<AnswerResult[]>([]);
+  const currentQuestionRef = useRef<any>(null);
+  const hasAnsweredRef = useRef(false);
 
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const questionIndexRef = useRef(0);
@@ -49,6 +58,11 @@ function MultiplayerContent() {
   useEffect(() => {
     isAdminRef.current = isAdmin;
   }, [isAdmin]);
+
+  useEffect(() => {
+    currentQuestionRef.current = currentQuestion;
+    hasAnsweredRef.current = hasAnswered;
+  }, [currentQuestion, hasAnswered]);
 
   useEffect(() => {
     questionIndexRef.current = questionIndex;
@@ -130,6 +144,8 @@ function MultiplayerContent() {
         setTimeLeft(data.timePerQuestion);
         setFeedback(null);
         setHasAnswered(false);
+        hasAnsweredRef.current = false;
+        setAnswerResults([]);
         setAnsweredCount(0);
         advancingRef.current = false;
         gameEndedRef.current = false;
@@ -141,6 +157,7 @@ function MultiplayerContent() {
         setQuestionIndex(prev => prev + 1);
         setFeedback(null);
         setHasAnswered(false);
+        hasAnsweredRef.current = false;
         setAnsweredCount(0);
         advancingRef.current = false;
       });
@@ -189,6 +206,10 @@ function MultiplayerContent() {
   function handleTimeUp() {
     if (gameEndedRef.current) return;
     gameEndedRef.current = true;
+    const unanswered = currentQuestionRef.current;
+    if (unanswered && !hasAnsweredRef.current) {
+      setAnswerResults(prev => [...prev, { question: unanswered.question, isCorrect: false, reference: unanswered.reference || 'Referência não informada' }]);
+    }
     setGameStarted(false);
     setShowResults(true);
     setCurrentQuestion(null);
@@ -269,8 +290,10 @@ function MultiplayerContent() {
   const handleAnswer = async (selectedId: string) => {
     if (hasAnswered) return;
     setHasAnswered(true);
+    hasAnsweredRef.current = true;
 
     const isCorrect = selectedId === currentQuestion.answer;
+    setAnswerResults(prev => [...prev, { question: currentQuestion.question, isCorrect, reference: currentQuestion.reference || 'Referência não informada' }]);
     const currentPlayer = players.find(p => p.id === myId);
     if (!currentPlayer) return;
     
@@ -341,7 +364,31 @@ function MultiplayerContent() {
           <div className="quiz-card p-8 h-full min-h-[400px] flex flex-col items-center justify-center text-center relative overflow-hidden">
             {showResults ? (
               <div className="w-full py-4">
-                <h3 className="text-3xl font-bold text-gold-primary mb-8">Ranking da Sala</h3>
+                <h3 className="text-3xl font-bold text-gold-primary mb-6">Resultado da partida</h3>
+                <div className="grid grid-cols-2 gap-4 max-w-md mx-auto mb-8">
+                  <div className="rounded-xl border border-green-200 bg-green-50 p-4">
+                    <p className="text-sm text-green-700">Acertos</p>
+                    <p className="text-4xl font-bold text-green-700">{answerResults.filter(result => result.isCorrect).length}</p>
+                  </div>
+                  <div className="rounded-xl border border-red-200 bg-red-50 p-4">
+                    <p className="text-sm text-red-700">Erros</p>
+                    <p className="text-4xl font-bold text-red-700">{answerResults.filter(result => !result.isCorrect).length}</p>
+                  </div>
+                </div>
+                {answerResults.some(result => !result.isCorrect) && (
+                  <section className="max-w-md mx-auto text-left mb-8">
+                    <h4 className="font-bold text-gold-primary mb-3">Referências para estudar as questões erradas</h4>
+                    <ul className="space-y-3">
+                      {answerResults.filter(result => !result.isCorrect).map((result, index) => (
+                        <li key={index} className="rounded-lg border border-border-gold p-3">
+                          <p className="text-sm font-medium mb-1">{result.question}</p>
+                          <p className="text-sm text-gold-accent">Leia: <span className="font-bold italic">{result.reference}</span></p>
+                        </li>
+                      ))}
+                    </ul>
+                  </section>
+                )}
+                <h4 className="text-xl font-bold text-gold-primary mb-4">Ranking da sala</h4>
                 <div className="max-w-md mx-auto space-y-4 mb-10">
                   {players.sort((a, b) => b.score - a.score).map((p, index) => (
                     <div 
