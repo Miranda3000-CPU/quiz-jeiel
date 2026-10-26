@@ -160,7 +160,6 @@ function MultiplayerContent() {
         hasAnsweredRef.current = false;
         setAnsweredCount(0);
         advancingRef.current = false;
-        startTimer(timePerQuestionRef.current);
       });
 
       channel.bind('on-answer', () => {
@@ -206,18 +205,16 @@ function MultiplayerContent() {
   }
 
   function handleTimeUp() {
-    if (gameEndedRef.current || hasAnsweredRef.current) return;
+    if (gameEndedRef.current) return;
     const unanswered = currentQuestionRef.current;
-    if (unanswered) {
+    if (unanswered && !hasAnsweredRef.current) {
       setAnswerResults(prev => [...prev, { question: unanswered.question, isCorrect: false, reference: unanswered.reference || 'Referência não informada' }]);
     }
     hasAnsweredRef.current = true;
     setHasAnswered(true);
-    fetch('/api/multiplayer/action', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'on-answer', roomId }),
-    });
+    if (isAdminRef.current) {
+      fetch('/api/multiplayer/action', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'game-over', roomId }) });
+    }
   }
 
   async function executeAdvance() {
@@ -247,7 +244,8 @@ function MultiplayerContent() {
     const correct = answerResults.filter(result => result.isCorrect).length;
     const errors = answerResults.length - correct;
     const site = window.location.origin;
-    const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1920" viewBox="0 0 1080 1920"><defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#241b0d"/><stop offset="1" stop-color="#806022"/></linearGradient></defs><rect width="1080" height="1920" fill="url(#bg)"/><rect x="54" y="54" width="972" height="1812" rx="44" fill="none" stroke="#e7c878" stroke-width="4"/><text x="540" y="270" fill="#f7e7b2" font-family="Arial" font-size="42" letter-spacing="8" text-anchor="middle">DESAFIO BÍBLICO</text><text x="540" y="550" fill="#fff" font-family="Arial" font-size="92" font-weight="700" text-anchor="middle">SOU BOM</text><text x="540" y="665" fill="#f2d17d" font-family="Arial" font-size="92" font-weight="700" text-anchor="middle">DE BÍBLIA!</text><text x="540" y="800" fill="#f7e7b2" font-family="Arial" font-size="38" text-anchor="middle">Meu resultado no Quiz Bíblico</text><rect x="130" y="920" width="360" height="270" rx="28" fill="#163d2b" stroke="#6bc58c" stroke-width="3"/><text x="310" y="1010" fill="#a9edc1" font-family="Arial" font-size="38" text-anchor="middle">ACERTOS</text><text x="310" y="1125" fill="#fff" font-family="Arial" font-size="100" font-weight="700" text-anchor="middle">'+correct+'</text><rect x="590" y="920" width="360" height="270" rx="28" fill="#4a2020" stroke="#ed8b8b" stroke-width="3"/><text x="770" y="1010" fill="#ffb9b9" font-family="Arial" font-size="38" text-anchor="middle">ERROS</text><text x="770" y="1125" fill="#fff" font-family="Arial" font-size="100" font-weight="700" text-anchor="middle">'+errors+'</text><text x="540" y="1390" fill="#fff" font-family="Arial" font-size="36" text-anchor="middle">Conhecimento que cresce com a Palavra.</text><text x="540" y="1600" fill="#f2d17d" font-family="Arial" font-size="34" text-anchor="middle">Faça seu desafio em</text><text x="540" y="1665" fill="#fff" font-family="Arial" font-size="30" text-anchor="middle">'+site.replace(/&/g,'&amp;').replace(/</g,'&lt;')+'</text><text x="540" y="1785" fill="#f7e7b2" font-family="Arial" font-size="26" text-anchor="middle">Quiz Bíblico • Compartilhe seu resultado</text></svg>';
+    const safeSite = site.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1920" viewBox="0 0 1080 1920"><defs><linearGradient id="paper" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fffaf0"/><stop offset="1" stop-color="#e8f7f3"/></linearGradient><linearGradient id="teal" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#42b8a5"/><stop offset="1" stop-color="#247f7b"/></linearGradient><filter id="shadow" x="-20%" y="-20%" width="140%" height="150%"><feDropShadow dx="0" dy="18" stdDeviation="18" flood-color="#264653" flood-opacity=".12"/></filter></defs><rect width="1080" height="1920" fill="url(#paper)"/><circle cx="1040" cy="140" r="230" fill="#f9c9b8" opacity=".55"/><circle cx="60" cy="1780" r="250" fill="#cceee6" opacity=".8"/><circle cx="75" cy="300" r="105" fill="#f5e3a7" opacity=".75"/><path d="M90 430 C140 330 220 335 260 420 C200 390 145 405 90 430Z" fill="#9bd6c7"/><path d="M990 1420 C920 1320 840 1340 820 1420 C875 1385 930 1390 990 1420Z" fill="#f2b7a4"/><rect x="58" y="58" width="964" height="1804" rx="52" fill="none" stroke="#ffffff" stroke-width="8"/><text x="540" y="230" fill="#247f7b" font-family="Arial,sans-serif" font-size="34" font-weight="700" letter-spacing="9" text-anchor="middle">DESAFIO BÍBLICO</text><g transform="translate(480 290)" stroke="#247f7b" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none"><path d="M0 18 Q-48 -8 -92 12 V104 Q-45 82 0 108 Q45 82 92 104 V12 Q48 -8 0 18Z"/><path d="M0 20 V106"/></g><text x="540" y="590" fill="#264653" font-family="Georgia,serif" font-size="100" font-weight="700" text-anchor="middle">Sou bom</text><text x="540" y="710" fill="#247f7b" font-family="Georgia,serif" font-size="100" font-weight="700" text-anchor="middle">de Bíblia!</text><rect x="180" y="770" width="720" height="88" rx="44" fill="#f6c7b6"/><text x="540" y="826" fill="#7d4036" font-family="Arial,sans-serif" font-size="32" font-weight="700" text-anchor="middle">MEU RESULTADO NO QUIZ</text><g filter="url(#shadow)"><rect x="130" y="940" width="380" height="300" rx="36" fill="#ffffff"/><rect x="570" y="940" width="380" height="300" rx="36" fill="#ffffff"/></g><rect x="130" y="940" width="380" height="14" rx="7" fill="#42b8a5"/><rect x="570" y="940" width="380" height="14" rx="7" fill="#f29c83"/><text x="320" y="1030" fill="#247f7b" font-family="Arial,sans-serif" font-size="30" font-weight="700" letter-spacing="3" text-anchor="middle">ACERTOS</text><text x="320" y="1165" fill="#264653" font-family="Georgia,serif" font-size="112" font-weight="700" text-anchor="middle">' + correct + '</text><text x="760" y="1030" fill="#c46e59" font-family="Arial,sans-serif" font-size="30" font-weight="700" letter-spacing="3" text-anchor="middle">ERROS</text><text x="760" y="1165" fill="#264653" font-family="Georgia,serif" font-size="112" font-weight="700" text-anchor="middle">' + errors + '</text><text x="540" y="1370" fill="#264653" font-family="Georgia,serif" font-size="39" font-style="italic" text-anchor="middle">Aprender a Palavra é uma jornada.</text><path d="M330 1410 H750" stroke="#b6ddd4" stroke-width="4" stroke-linecap="round"/><text x="540" y="1530" fill="#247f7b" font-family="Arial,sans-serif" font-size="29" font-weight="700" letter-spacing="3" text-anchor="middle">ACEITE O DESAFIO</text><rect x="120" y="1580" width="840" height="100" rx="50" fill="url(#teal)"/><text x="540" y="1642" fill="#ffffff" font-family="Arial,sans-serif" font-size="29" font-weight="700" text-anchor="middle">' + safeSite + '</text><text x="540" y="1760" fill="#64817e" font-family="Arial,sans-serif" font-size="25" text-anchor="middle">Compartilhe seu resultado com seus amigos</text><text x="540" y="1810" fill="#247f7b" font-family="Arial,sans-serif" font-size="22" letter-spacing="5" text-anchor="middle">FÉ • SABEDORIA • CONHECIMENTO</text></svg>';
     const blob = await new Promise<Blob>((resolve, reject) => {
       const image = new Image();
       image.onload = () => { const canvas = document.createElement('canvas'); canvas.width = 1080; canvas.height = 1920; const ctx = canvas.getContext('2d'); if (!ctx) { reject(new Error('Canvas indisponível')); return; } ctx.drawImage(image, 0, 0); canvas.toBlob(file => file ? resolve(file) : reject(new Error('Falha ao gerar card')), 'image/png'); };
@@ -296,7 +294,6 @@ function MultiplayerContent() {
     hasAnsweredRef.current = true;
 
     const isCorrect = selectedId === currentQuestion.answer;
-    if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
     setAnswerResults(prev => [...prev, { question: currentQuestion.question, isCorrect, reference: currentQuestion.reference || 'Referência não informada' }]);
     const currentPlayer = players.find(p => p.id === myId);
     if (!currentPlayer) return;
@@ -387,14 +384,7 @@ function MultiplayerContent() {
                     </ul>
                   </section>
                 )}
-                <section className="max-w-[220px] mx-auto mb-4">
-                  <div className="aspect-[9/16] rounded-2xl border-2 border-[#e7c878] bg-gradient-to-br from-[#241b0d] to-[#806022] p-4 text-white flex flex-col justify-around items-center shadow-xl">
-                    <p className="text-[10px] tracking-[0.2em] text-[#f7e7b2]">DESAFIO BÍBLICO</p>
-                    <div><p className="text-2xl font-black">SOU BOM</p><p className="text-2xl font-black text-[#f2d17d]">DE BÍBLIA!</p></div>
-                    <div className="w-full grid grid-cols-2 gap-2 text-center"><div className="rounded-lg bg-green-900/70 p-2"><p className="text-[10px]">ACERTOS</p><p className="text-2xl font-bold">{answerResults.filter(result => result.isCorrect).length}</p></div><div className="rounded-lg bg-red-950/70 p-2"><p className="text-[10px]">ERROS</p><p className="text-2xl font-bold">{answerResults.filter(result => !result.isCorrect).length}</p></div></div>
-                    <p className="text-center text-[10px] text-[#f7e7b2]">Conhecimento que cresce com a Palavra.</p><p className="text-center text-[9px] break-all">{typeof window !== 'undefined' ? window.location.origin : ''}</p>
-                  </div>
-                </section>
+                <section className="max-w-[220px] mx-auto mb-4"><div className="aspect-[9/16] rounded-2xl border border-white bg-gradient-to-br from-[#fffaf0] to-[#e8f7f3] p-4 text-[#264653] flex flex-col justify-around items-center shadow-xl"><p className="text-[10px] tracking-[0.2em] text-[#247f7b] font-bold">DESAFIO BÍBLICO</p><div className="text-center"><p className="text-2xl font-serif font-bold">Sou bom</p><p className="text-2xl font-serif font-bold text-[#247f7b]">de Bíblia!</p></div><div className="w-full grid grid-cols-2 gap-2 text-center"><div className="rounded-lg bg-white p-2 border-t-4 border-[#42b8a5]"><p className="text-[10px] text-[#247f7b] font-bold">ACERTOS</p><p className="text-2xl font-bold">{answerResults.filter(result => result.isCorrect).length}</p></div><div className="rounded-lg bg-white p-2 border-t-4 border-[#f29c83]"><p className="text-[10px] text-[#c46e59] font-bold">ERROS</p><p className="text-2xl font-bold">{answerResults.filter(result => !result.isCorrect).length}</p></div></div><p className="text-center text-[10px] text-[#64817e]">Aprender a Palavra é uma jornada.</p><p className="text-center text-[9px] break-all text-[#247f7b]">{typeof window !== "undefined" ? window.location.origin : ""}</p></div></section>
                 <button onClick={shareResultCard} className="btn-gold w-full max-w-md mx-auto mb-8">Compartilhar card 9:16</button>
                 <h4 className="text-xl font-bold text-gold-primary mb-4">Ranking da sala</h4>
                 <div className="max-w-md mx-auto space-y-4 mb-10">
@@ -437,14 +427,14 @@ function MultiplayerContent() {
                 
                 {isAdmin && (
                   <div className="mb-8 w-full max-w-xs text-left">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Tempo para cada pergunta:</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Tempo total da partida:</label>
                     <select 
                       value={timePerQuestion} 
                       onChange={e => setTimePerQuestion(Number(e.target.value))}
                       className="w-full p-2 border border-border-gold rounded-lg focus:ring-gold-primary"
                     >
-                      <option value={30}>30 segundos por pergunta · 15 perguntas</option>
-                      <option value={60}>1 minuto por pergunta · 15 perguntas</option>
+                      <option value={30}>30 segundos no total · desafio relâmpago</option>
+                      <option value={60}>1 minuto no total · desafio rápido</option>
                     </select>
                   </div>
                 )}
@@ -461,10 +451,10 @@ function MultiplayerContent() {
                 </div>
               </>
             ) : (
-              <div className="w-full">
-                <div className="absolute top-0 left-0 w-full h-2 bg-gray-100">
+              <div className="w-full h-[600px] flex flex-col">
+                <div className="absolute top-0 left-0 w-full h-2 bg-slate-100">
                   <div 
-                    className="h-full bg-gold-primary transition-all duration-1000 ease-linear"
+                    className="h-full bg-teal-500 transition-all duration-1000 ease-linear"
                     style={{ width: `${(timeLeft / timePerQuestion) * 100}%` }}
                   ></div>
                 </div>
@@ -479,16 +469,15 @@ function MultiplayerContent() {
                   </div>
                 </div>
 
-                <h3 className="text-xl font-bold mb-8">{currentQuestion?.question}</h3>
+                <h3 className="text-xl font-bold mb-5 min-h-[112px] max-h-[112px] overflow-y-auto flex items-center">{currentQuestion?.question}</h3>
                 <div className="grid grid-cols-1 gap-3">
                   {currentQuestion?.options.map((opt: any) => (
                     <button 
                       key={opt.id} 
                       onClick={() => handleAnswer(opt.id)}
                       disabled={hasAnswered}
-                      className={`p-4 border border-border-gold rounded-lg transition-colors text-left font-medium
-                        ${hasAnswered ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gold-light-bg active:scale-[0.98]'}
-                      `}
+                      className={`h-[64px] px-4 border border-slate-200 rounded-xl transition-colors text-left font-medium flex items-center bg-white ${hasAnswered ? "opacity-50 cursor-not-allowed" : "hover:bg-teal-50 hover:border-teal-300 active:scale-[0.99]"}`}
+                    
                     >
                       {opt.text}
                     </button>
