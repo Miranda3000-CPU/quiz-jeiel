@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, Suspense, useRef } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import questionsData from '@/data/bible.json';
 import PusherJS from 'pusher-js';
@@ -15,7 +15,6 @@ interface Player {
 
 function MultiplayerContent() {
   const searchParams = useSearchParams();
-  const router = useRouter();
   const initialRoomId = searchParams.get('id') || '';
 
   const [name, setName] = useState('');
@@ -25,7 +24,6 @@ function MultiplayerContent() {
   const [gameStarted, setGameStarted] = useState(false);
   const [currentQuestion, setCurrentQuestion] = useState<any>(null);
   const [questionIndex, setQuestionIndex] = useState(0);
-  const [user, setUser] = useState<any>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [myId, setMyId] = useState<string | null>(null);
   
@@ -64,17 +62,6 @@ function MultiplayerContent() {
   }, [answeredCount, players.length, isAdmin, gameStarted]);
 
   useEffect(() => {
-    fetch('/api/auth/me')
-      .then(res => res.json())
-      .then(data => {
-        if (data.user) {
-          setUser(data.user);
-          setName(data.user.username);
-        }
-      });
-  }, []);
-
-  useEffect(() => {
     if (joined && roomId) {
       const pusherInstance = new PusherJS(
         process.env.NEXT_PUBLIC_PUSHER_KEY!,
@@ -90,8 +77,6 @@ function MultiplayerContent() {
       channel.bind('pusher:subscription_succeeded', (members: any) => {
         setMyId(members.myID);
         const initialPlayers: Player[] = [];
-        let firstLoggedUser: any = null;
-        
         members.each((member: any) => {
           initialPlayers.push({ 
             id: member.id, 
@@ -99,17 +84,10 @@ function MultiplayerContent() {
             score: 0,
             isGuest: member.info.isGuest 
           });
-          if (member.info.isLogged && !firstLoggedUser) {
-            firstLoggedUser = member;
-          }
         });
         setPlayers(initialPlayers);
         
-        if (firstLoggedUser && firstLoggedUser.id === members.myID) {
-          setIsAdmin(true);
-        } else if (!firstLoggedUser && members.count === 1) {
-          setIsAdmin(true);
-        }
+        if (members.count === 1) setIsAdmin(true);
       });
 
       channel.bind('pusher:member_added', (member: any) => {
@@ -176,8 +154,6 @@ function MultiplayerContent() {
         setCurrentQuestion(null);
         if (timerRef.current) clearInterval(timerRef.current);
         
-        // Auto-save ranking for logged users
-        saveLoggedUserScore();
       });
 
       return () => {
@@ -187,25 +163,6 @@ function MultiplayerContent() {
       };
     }
   }, [joined, roomId]);
-
-  const saveLoggedUserScore = async () => {
-    // Only save if we have a real user account
-    if (user && myId) {
-        const myPlayer = players.find(p => p.id === myId);
-        const finalScore = myPlayer ? myPlayer.score : 0;
-        
-        try {
-            await fetch('/api/ranking', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userName: user.username, score: finalScore }),
-            });
-            console.log("Pontuação multiplayer salva no ranking global");
-        } catch (err) {
-            console.error("Erro ao salvar ranking global:", err);
-        }
-    }
-  };
 
   const startTimer = (seconds: number) => {
     if (timerRef.current) clearInterval(timerRef.current);
@@ -341,7 +298,7 @@ function MultiplayerContent() {
           <h2 className="text-2xl font-bold text-gold-primary mb-6 text-center">Multiplayer</h2>
           <div className="space-y-4">
             <div className="text-sm text-gray-500 mb-2">
-              {user ? `Logado como: ${user.username}` : 'Entrando como Convidado'}
+              'Você entrará como convidado. Não há cadastro nem salvamento permanente.'
             </div>
             <input 
               type="text" 
@@ -349,7 +306,6 @@ function MultiplayerContent() {
               className="w-full p-3 border border-border-gold rounded-lg focus:outline-gold-primary"
               value={name}
               onChange={e => setName(e.target.value)}
-              disabled={!!user}
             />
             <input 
               type="text" 
