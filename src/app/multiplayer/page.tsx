@@ -40,7 +40,11 @@ function MultiplayerContent() {
   const totalQuestionsRef = useRef(15);
   const timePerQuestionRef = useRef(30);
   const advancingRef = useRef(false);
+  const gameEndedRef = useRef(false);
+  const isAdminRef = useRef(false);
   const pusherRef = useRef<PusherJS | null>(null);
+
+  isAdminRef.current = isAdmin;
 
   useEffect(() => {
     questionIndexRef.current = questionIndex;
@@ -124,18 +128,17 @@ function MultiplayerContent() {
         setHasAnswered(false);
         setAnsweredCount(0);
         advancingRef.current = false;
+        gameEndedRef.current = false;
         startTimer(data.timePerQuestion);
       });
 
       channel.bind('next-question', (data: any) => {
         setCurrentQuestion(data.question);
         setQuestionIndex(prev => prev + 1);
-        setTimeLeft(timePerQuestionRef.current);
         setFeedback(null);
         setHasAnswered(false);
         setAnsweredCount(0);
         advancingRef.current = false;
-        startTimer(timePerQuestionRef.current);
       });
 
       channel.bind('on-answer', () => {
@@ -180,28 +183,29 @@ function MultiplayerContent() {
   };
 
   const handleTimeUp = () => {
-    if (hasAnswered) return;
+    if (gameEndedRef.current) return;
+    gameEndedRef.current = true;
+    setGameStarted(false);
+    setShowResults(true);
+    setCurrentQuestion(null);
     setHasAnswered(true);
-    
-    setFeedback({ isCorrect: false, reference: currentQuestion?.reference || 'Verifique na Bíblia' });
-    
-    fetch('/api/multiplayer/action', {
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+
+    // O administrador encerra a partida para todos quando o tempo total acaba.
+    if (isAdminRef.current) {
+      fetch('/api/multiplayer/action', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'on-answer', roomId }),
-    });
-
-    if (isAdmin) {
-      setTimeout(() => {
-        if (!advancingRef.current) {
-            advancingRef.current = true;
-            executeAdvance();
-        }
-      }, 3000);
+        body: JSON.stringify({ action: 'game-over', roomId }),
+      });
     }
   };
 
   const executeAdvance = async () => {
+    if (gameEndedRef.current) return;
     const nextIndex = questionIndexRef.current + 1;
     if (nextIndex < totalQuestionsRef.current) {
       const nextQuestion = questionsData[Math.floor(Math.random() * questionsData.length)];
@@ -374,16 +378,16 @@ function MultiplayerContent() {
                 
                 {isAdmin && (
                   <div className="mb-8 w-full max-w-xs text-left">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Tempo por pergunta:</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Tempo total da partida:</label>
                     <select 
                       value={timePerQuestion} 
                       onChange={e => setTimePerQuestion(Number(e.target.value))}
                       className="w-full p-2 border border-border-gold rounded-lg focus:ring-gold-primary"
                     >
-                      <option value={15}>15 segundos (10 perguntas)</option>
-                      <option value={30}>30 segundos (15 perguntas)</option>
-                      <option value={60}>60 segundos (20 perguntas)</option>
-                      <option value={120}>120 segundos (30 perguntas)</option>
+                      <option value={15}>15 segundos no total (até 10 perguntas)</option>
+                      <option value={30}>30 segundos no total (até 15 perguntas)</option>
+                      <option value={60}>60 segundos no total (até 20 perguntas)</option>
+                      <option value={120}>120 segundos no total (até 30 perguntas)</option>
                     </select>
                   </div>
                 )}
