@@ -29,8 +29,8 @@ export default function PlayPage() {
   const TOTAL_QUESTIONS_COUNT = 15;
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     const shuffled = [...questionsData].sort(() => Math.random() - 0.5);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setQuestions(shuffled.slice(0, TOTAL_QUESTIONS_COUNT));
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
