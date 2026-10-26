@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Quiz Jeiel | Quiz Bíblico",
-  description: "Desafie seus conhecimentos bíblicos em partidas solo ou multiplayer.",
+  description: "Teste seus conhecimentos bíblicos em um desafio individual.",
 };
 
 export default function RootLayout({
