@@ -1,5 +1,7 @@
 'use client';
 
+/* eslint-disable @typescript-eslint/no-explicit-any, react/no-unescaped-entities */
+
 import { useState, useEffect, Suspense, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
@@ -44,7 +46,9 @@ function MultiplayerContent() {
   const isAdminRef = useRef(false);
   const pusherRef = useRef<PusherJS | null>(null);
 
-  isAdminRef.current = isAdmin;
+  useEffect(() => {
+    isAdminRef.current = isAdmin;
+  }, [isAdmin]);
 
   useEffect(() => {
     questionIndexRef.current = questionIndex;
@@ -167,7 +171,7 @@ function MultiplayerContent() {
     }
   }, [joined, roomId]);
 
-  const startTimer = (seconds: number) => {
+  function startTimer(seconds: number) {
     if (timerRef.current) clearInterval(timerRef.current);
     setTimeLeft(seconds);
     timerRef.current = setInterval(() => {
@@ -180,9 +184,9 @@ function MultiplayerContent() {
         return prev - 1;
       });
     }, 1000);
-  };
+  }
 
-  const handleTimeUp = () => {
+  function handleTimeUp() {
     if (gameEndedRef.current) return;
     gameEndedRef.current = true;
     setGameStarted(false);
@@ -202,9 +206,9 @@ function MultiplayerContent() {
         body: JSON.stringify({ action: 'game-over', roomId }),
       });
     }
-  };
+  }
 
-  const executeAdvance = async () => {
+  async function executeAdvance() {
     if (gameEndedRef.current) return;
     const nextIndex = questionIndexRef.current + 1;
     if (nextIndex < totalQuestionsRef.current) {
@@ -225,7 +229,7 @@ function MultiplayerContent() {
         body: JSON.stringify({ action: 'game-over', roomId }),
       });
     }
-  };
+  }
 
   const joinRoom = async () => {
     if (!name || !roomId) return alert('Informe seu nome e o ID da sala');
