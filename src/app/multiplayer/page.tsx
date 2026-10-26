@@ -1,5 +1,7 @@
 'use client';
 
+/* eslint-disable @typescript-eslint/no-explicit-any, react/no-unescaped-entities */
+
 import { useState, useEffect, Suspense, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
@@ -11,6 +13,12 @@ interface Player {
   name: string;
   score: number;
   isGuest?: boolean;
+}
+
+interface AnswerResult {
+  question: string;
+  isCorrect: boolean;
+  reference: string;
 }
 
 function MultiplayerContent() {
@@ -34,13 +42,27 @@ function MultiplayerContent() {
   const [hasAnswered, setHasAnswered] = useState(false);
   const [answeredCount, setAnsweredCount] = useState(0);
   const [showResults, setShowResults] = useState(false);
+  const [answerResults, setAnswerResults] = useState<AnswerResult[]>([]);
+  const currentQuestionRef = useRef<any>(null);
+  const hasAnsweredRef = useRef(false);
 
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const questionIndexRef = useRef(0);
   const totalQuestionsRef = useRef(15);
   const timePerQuestionRef = useRef(30);
   const advancingRef = useRef(false);
+  const gameEndedRef = useRef(false);
+  const isAdminRef = useRef(false);
   const pusherRef = useRef<PusherJS | null>(null);
+
+  useEffect(() => {
+    isAdminRef.current = isAdmin;
+  }, [isAdmin]);
+
+  useEffect(() => {
+    currentQuestionRef.current = currentQuestion;
+    hasAnsweredRef.current = hasAnswered;
+  }, [currentQuestion, hasAnswered]);
 
   useEffect(() => {
     questionIndexRef.current = questionIndex;
@@ -122,20 +144,22 @@ function MultiplayerContent() {
         setTimeLeft(data.timePerQuestion);
         setFeedback(null);
         setHasAnswered(false);
+        hasAnsweredRef.current = false;
+        setAnswerResults([]);
         setAnsweredCount(0);
         advancingRef.current = false;
+        gameEndedRef.current = false;
         startTimer(data.timePerQuestion);
       });
 
       channel.bind('next-question', (data: any) => {
         setCurrentQuestion(data.question);
         setQuestionIndex(prev => prev + 1);
-        setTimeLeft(timePerQuestionRef.current);
         setFeedback(null);
         setHasAnswered(false);
+        hasAnsweredRef.current = false;
         setAnsweredCount(0);
         advancingRef.current = false;
-        startTimer(timePerQuestionRef.current);
       });
 
       channel.bind('on-answer', () => {
@@ -164,7 +188,7 @@ function MultiplayerContent() {
     }
   }, [joined, roomId]);
 
-  const startTimer = (seconds: number) => {
+  function startTimer(seconds: number) {
     if (timerRef.current) clearInterval(timerRef.current);
     setTimeLeft(seconds);
     timerRef.current = setInterval(() => {
@@ -177,31 +201,36 @@ function MultiplayerContent() {
         return prev - 1;
       });
     }, 1000);
-  };
+  }
 
-  const handleTimeUp = () => {
-    if (hasAnswered) return;
+  function handleTimeUp() {
+    if (gameEndedRef.current) return;
+    gameEndedRef.current = true;
+    const unanswered = currentQuestionRef.current;
+    if (unanswered && !hasAnsweredRef.current) {
+      setAnswerResults(prev => [...prev, { question: unanswered.question, isCorrect: false, reference: unanswered.reference || 'Referência não informada' }]);
+    }
+    setGameStarted(false);
+    setShowResults(true);
+    setCurrentQuestion(null);
     setHasAnswered(true);
-    
-    setFeedback({ isCorrect: false, reference: currentQuestion?.reference || 'Verifique na Bíblia' });
-    
-    fetch('/api/multiplayer/action', {
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+
+    // O administrador encerra a partida para todos quando o tempo total acaba.
+    if (isAdminRef.current) {
+      fetch('/api/multiplayer/action', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'on-answer', roomId }),
-    });
-
-    if (isAdmin) {
-      setTimeout(() => {
-        if (!advancingRef.current) {
-            advancingRef.current = true;
-            executeAdvance();
-        }
-      }, 3000);
+        body: JSON.stringify({ action: 'game-over', roomId }),
+      });
     }
-  };
+  }
 
-  const executeAdvance = async () => {
+  async function executeAdvance() {
+    if (gameEndedRef.current) return;
     const nextIndex = questionIndexRef.current + 1;
     if (nextIndex < totalQuestionsRef.current) {
       const nextQuestion = questionsData[Math.floor(Math.random() * questionsData.length)];
@@ -221,7 +250,7 @@ function MultiplayerContent() {
         body: JSON.stringify({ action: 'game-over', roomId }),
       });
     }
-  };
+  }
 
   const joinRoom = async () => {
     if (!name || !roomId) return alert('Informe seu nome e o ID da sala');
@@ -261,8 +290,10 @@ function MultiplayerContent() {
   const handleAnswer = async (selectedId: string) => {
     if (hasAnswered) return;
     setHasAnswered(true);
+    hasAnsweredRef.current = true;
 
     const isCorrect = selectedId === currentQuestion.answer;
+    setAnswerResults(prev => [...prev, { question: currentQuestion.question, isCorrect, reference: currentQuestion.reference || 'Referência não informada' }]);
     const currentPlayer = players.find(p => p.id === myId);
     if (!currentPlayer) return;
     
@@ -333,7 +364,31 @@ function MultiplayerContent() {
           <div className="quiz-card p-8 h-full min-h-[400px] flex flex-col items-center justify-center text-center relative overflow-hidden">
             {showResults ? (
               <div className="w-full py-4">
-                <h3 className="text-3xl font-bold text-gold-primary mb-8">Ranking da Sala</h3>
+                <h3 className="text-3xl font-bold text-gold-primary mb-6">Resultado da partida</h3>
+                <div className="grid grid-cols-2 gap-4 max-w-md mx-auto mb-8">
+                  <div className="rounded-xl border border-green-200 bg-green-50 p-4">
+                    <p className="text-sm text-green-700">Acertos</p>
+                    <p className="text-4xl font-bold text-green-700">{answerResults.filter(result => result.isCorrect).length}</p>
+                  </div>
+                  <div className="rounded-xl border border-red-200 bg-red-50 p-4">
+                    <p className="text-sm text-red-700">Erros</p>
+                    <p className="text-4xl font-bold text-red-700">{answerResults.filter(result => !result.isCorrect).length}</p>
+                  </div>
+                </div>
+                {answerResults.some(result => !result.isCorrect) && (
+                  <section className="max-w-md mx-auto text-left mb-8">
+                    <h4 className="font-bold text-gold-primary mb-3">Referências para estudar as questões erradas</h4>
+                    <ul className="space-y-3">
+                      {answerResults.filter(result => !result.isCorrect).map((result, index) => (
+                        <li key={index} className="rounded-lg border border-border-gold p-3">
+                          <p className="text-sm font-medium mb-1">{result.question}</p>
+                          <p className="text-sm text-gold-accent">Leia: <span className="font-bold italic">{result.reference}</span></p>
+                        </li>
+                      ))}
+                    </ul>
+                  </section>
+                )}
+                <h4 className="text-xl font-bold text-gold-primary mb-4">Ranking da sala</h4>
                 <div className="max-w-md mx-auto space-y-4 mb-10">
                   {players.sort((a, b) => b.score - a.score).map((p, index) => (
                     <div 
@@ -374,16 +429,16 @@ function MultiplayerContent() {
                 
                 {isAdmin && (
                   <div className="mb-8 w-full max-w-xs text-left">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Tempo por pergunta:</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Tempo total da partida:</label>
                     <select 
                       value={timePerQuestion} 
                       onChange={e => setTimePerQuestion(Number(e.target.value))}
                       className="w-full p-2 border border-border-gold rounded-lg focus:ring-gold-primary"
                     >
-                      <option value={15}>15 segundos (10 perguntas)</option>
-                      <option value={30}>30 segundos (15 perguntas)</option>
-                      <option value={60}>60 segundos (20 perguntas)</option>
-                      <option value={120}>120 segundos (30 perguntas)</option>
+                      <option value={15}>15 segundos no total (até 10 perguntas)</option>
+                      <option value={30}>30 segundos no total (até 15 perguntas)</option>
+                      <option value={60}>60 segundos no total (até 20 perguntas)</option>
+                      <option value={120}>120 segundos no total (até 30 perguntas)</option>
                     </select>
                   </div>
                 )}

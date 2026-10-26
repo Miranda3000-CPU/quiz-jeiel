@@ -20,7 +20,9 @@
   --soft-shadow-inset: inset 3px 3px 7px #e3dccd, inset -3px -3px 7px #ffffff;
 }
 
-* { box-sizing: border-box; }
+* {
+  box-sizing: border-box;
+}
 
 html {
   min-height: 100%;
@@ -37,7 +39,9 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
-::selection { background: rgba(189, 145, 56, 0.24); }
+::selection {
+  background: rgba(189, 145, 56, 0.24);
+}
 
 .quiz-card {
   border: 1px solid rgba(255, 255, 255, 0.9);
@@ -74,30 +78,47 @@ body {
   box-shadow: var(--soft-shadow-inset);
 }
 
-button, input, select, textarea { font: inherit; }
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
 
-input, select, textarea {
+input,
+select,
+textarea {
   border-radius: 0.9rem;
   background: #fffdf7;
   box-shadow: var(--soft-shadow-inset);
   color: var(--foreground);
 }
 
-input:focus, select:focus, textarea:focus {
+input:focus,
+select:focus,
+textarea:focus {
   outline: 2px solid rgba(189, 145, 56, 0.6);
   outline-offset: 2px;
 }
 
-button:focus-visible, a:focus-visible {
+button:focus-visible,
+a:focus-visible {
   outline: 3px solid rgba(189, 145, 56, 0.7);
   outline-offset: 3px;
 }
 
-a { transition: color 160ms ease, opacity 160ms ease; }
-table { border-spacing: 0; }
+a {
+  transition: color 160ms ease, opacity 160ms ease;
+}
+
+table {
+  border-spacing: 0;
+}
 
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
+  *,
+  *::before,
+  *::after {
     scroll-behavior: auto !important;
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
