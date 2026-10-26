@@ -1,48 +1,20 @@
 import Link from 'next/link';
-import { cookies } from 'next/headers';
-import { verifyToken } from '@/lib/auth-utils';
 
-export default async function Home() {
-  const token = (await cookies()).get('auth_token')?.value;
-  const user = token ? verifyToken(token) : null;
-
+export default function Home() {
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-4">
-      <div className="quiz-card max-w-md w-full p-8 text-center">
-        <h1 className="text-4xl font-bold text-gold-primary mb-2">Quiz Bíblico Moderno</h1>
-        <p className="text-text-dark mb-8">Desafie seus conhecimentos sagrados!</p>
-
+    <main className="min-h-screen flex flex-col items-center justify-center p-4">
+      <section className="quiz-card max-w-md w-full p-8 text-center">
+        <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-violet-100 text-3xl shadow-inner">✦</div>
+        <p className="text-sm font-semibold uppercase tracking-[0.2em] text-violet-500 mb-3">Aprenda jogando</p>
+        <h1 className="text-4xl font-bold text-gold-primary mb-3">Quiz Bíblico</h1>
+        <p className="text-text-dark mb-8">Desafie seus conhecimentos bíblicos, descubra referências e divirta-se com amigos.</p>
         <div className="space-y-4 flex flex-col">
-          {user ? (
-            <div className="mb-4">
-              <p className="text-sm text-gray-600 mb-2">Bem-vindo, <span className="font-bold text-gold-primary">{user.username}</span>!</p>
-              <Link href="/auth" className="text-xs text-gold-accent hover:underline">
-                Gerenciar Conta / Sair
-              </Link>
-            </div>
-          ) : (
-            <Link href="/auth" className="mb-6 p-2 bg-gold-light-bg border border-border-gold rounded-lg text-gold-primary font-medium hover:bg-white transition-colors">
-              Fazer Login / Criar Conta
-            </Link>
-          )}
-
-          <Link href="/play" className="btn-gold block text-center no-underline">
-            Jogar Sozinho
-          </Link>
-          
-          <Link href="/multiplayer" className="bg-gold-accent hover:bg-gold-accent-hover text-white py-3 px-5 rounded-lg font-medium transition-all no-underline">
-            Modo Multiplayer
-          </Link>
-
-          <Link href="/ranking" className="text-gold-primary font-semibold hover:underline mt-4 no-underline">
-            Ver Ranking Global
-          </Link>
+          <Link href="/play" className="btn-gold block text-center no-underline">Jogar Sozinho</Link>
+          <Link href="/multiplayer" className="bg-gold-accent hover:bg-gold-accent-hover text-white py-3 px-5 rounded-xl font-semibold transition-all no-underline shadow-lg">Modo Multiplayer</Link>
+          <p className="pt-2 text-xs text-gray-500">Sem cadastro, sem banco de dados e sem ranking persistente.</p>
         </div>
-      </div>
-      
-      <footer className="mt-12 text-sm text-gray-500">
-        Desenvolvido por Jeiel Lima Miranda
-      </footer>
-    </div>
+      </section>
+      <footer className="mt-8 text-sm text-gray-500">Desenvolvido por Jeiel Lima Miranda</footer>
+    </main>
   );
 }
