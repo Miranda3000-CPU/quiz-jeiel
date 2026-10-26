@@ -1,182 +1,41 @@
 'use client';
-
-/* eslint-disable @typescript-eslint/no-explicit-any, react/no-unescaped-entities */
-
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import questionsData from '@/data/bible.json';
-
-interface Question {
-  question: string;
-  options: { id: string; text: string }[];
-  answer: string;
-  reference?: string;
-}
-
-interface AnswerResult {
-  question: string;
-  isCorrect: boolean;
-  reference: string;
-}
-
+interface Question { question:string; options:{id:string;text:string}[]; answer:string; reference?:string; }
+interface AnswerResult { question:string; isCorrect:boolean; reference:string; }
+const QUESTION_COUNT=15;
 export default function PlayPage() {
-  const [questions, setQuestions] = useState<Question[]>([]);
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [score, setScore] = useState(0);
-  const [showResult, setShowResult] = useState(false);
-  const [timeLeft, setTimeLeft] = useState(30);
-  const [hasAnswered, setHasAnswered] = useState(false);
-  const [feedback, setFeedback] = useState<{ isCorrect: boolean; reference: string | null } | null>(null);
-  const [answerResults, setAnswerResults] = useState<AnswerResult[]>([]);
-  const currentQuestionRef = useRef<Question | null>(null);
-  const hasAnsweredRef = useRef(false);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
-  const transitionTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const isProcessingRef = useRef(false);
-
-  const TOTAL_TIME_SECONDS = 30;
-  const TOTAL_QUESTIONS_COUNT = 15;
-
-  useEffect(() => {
-    const shuffled = [...questionsData].sort(() => Math.random() - 0.5);
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setQuestions(shuffled.slice(0, TOTAL_QUESTIONS_COUNT));
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-      if (transitionTimerRef.current) clearTimeout(transitionTimerRef.current);
-    };
-  }, []);
-
-  useEffect(() => {
-    currentQuestionRef.current = questions[currentIndex] ?? null;
-    hasAnsweredRef.current = hasAnswered;
-  }, [questions, currentIndex, hasAnswered]);
-
-  useEffect(() => {
-    if (questions.length > 0 && !showResult && !timerRef.current) startTimer();
-    if (showResult && timerRef.current) {
-      clearInterval(timerRef.current);
-      timerRef.current = null;
-    }
-  }, [questions.length, showResult]);
-
-  function startTimer() {
-    setTimeLeft(TOTAL_TIME_SECONDS);
-    timerRef.current = setInterval(() => {
-      setTimeLeft(prev => {
-        if (prev <= 1) {
-          if (timerRef.current) clearInterval(timerRef.current);
-          timerRef.current = null;
-          if (transitionTimerRef.current) clearTimeout(transitionTimerRef.current);
-          const unanswered = currentQuestionRef.current;
-          if (unanswered && !hasAnsweredRef.current) {
-            setAnswerResults(prev => [...prev, { question: unanswered.question, isCorrect: false, reference: unanswered.reference || 'Referência não informada' }]);
-          }
-          setShowResult(true);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-  }
-
-  const handleAnswer = (selectedId: string) => {
-    if (isProcessingRef.current || hasAnswered) return;
-    const currentQuestion = questions[currentIndex];
-    if (!currentQuestion) return;
-    isProcessingRef.current = true;
-    setHasAnswered(true);
-    hasAnsweredRef.current = true;
-    const isCorrect = selectedId === currentQuestion.answer;
-    setAnswerResults(prev => [...prev, { question: currentQuestion.question, isCorrect, reference: currentQuestion.reference || 'Referência não informada' }]);
-    if (isCorrect) setScore(prev => prev + 10);
-    setFeedback({
-      isCorrect,
-      reference: isCorrect ? null : (currentQuestion.reference || 'Verifique na Bíblia'),
-    });
-    transitionTimerRef.current = setTimeout(() => {
-      transitionTimerRef.current = null;
-      if (currentIndex + 1 < questions.length) {
-        setCurrentIndex(prev => prev + 1);
-        setHasAnswered(false);
-        setFeedback(null);
-        isProcessingRef.current = false;
-      } else {
-        setShowResult(true);
-        isProcessingRef.current = false;
-      }
-    }, 2500);
-  };
-
-  if (questions.length === 0) return <div className="text-center p-20 text-gold-primary animate-pulse font-bold text-2xl">Carregando questões bíblicas...</div>;
-
-  if (showResult) {
-    return (
-      <main className="min-h-screen flex items-center justify-center p-4">
-        <section className="quiz-card max-w-md w-full p-8 text-center">
-          <h2 className="text-3xl font-bold text-gold-primary mb-4">Resultado da partida</h2>
-          <div className="grid grid-cols-2 gap-4 mb-6">
-            <div className="rounded-xl border border-green-200 bg-green-50 p-4">
-              <p className="text-sm text-green-700">Acertos</p>
-              <p className="text-4xl font-bold text-green-700">{answerResults.filter(result => result.isCorrect).length}</p>
-            </div>
-            <div className="rounded-xl border border-red-200 bg-red-50 p-4">
-              <p className="text-sm text-red-700">Erros</p>
-              <p className="text-4xl font-bold text-red-700">{answerResults.filter(result => !result.isCorrect).length}</p>
-            </div>
-          </div>
-          {answerResults.some(result => !result.isCorrect) && (
-            <section className="text-left mb-6">
-              <h3 className="font-bold text-gold-primary mb-3">Referências para estudar as questões erradas</h3>
-              <ul className="space-y-3">
-                {answerResults.filter(result => !result.isCorrect).map((result, index) => (
-                  <li key={index} className="rounded-lg border border-border-gold p-3">
-                    <p className="text-sm font-medium mb-1">{result.question}</p>
-                    <p className="text-sm text-gold-accent">Leia: <span className="font-bold italic">{result.reference}</span></p>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          )}
-          <div className="space-y-3">
-            <button onClick={() => window.location.reload()} className="btn-gold w-full">Jogar novamente</button>
-            <Link href="/" className="block text-center text-sm text-gray-500 hover:underline">Voltar ao início</Link>
-          </div>
-        </section>
-      </main>
-    );
-  }
-
-  const current = questions[currentIndex];
-  return (
-    <main className="min-h-screen p-4 md:p-12 max-w-2xl mx-auto">
-      <div className="flex justify-between items-center mb-8 gap-3">
-        <span className="text-gold-primary font-bold">Questão {currentIndex + 1} / {questions.length}</span>
-        <div className="flex items-center gap-3">
-          <span className={`font-bold ${timeLeft <= 5 ? 'text-red-500 animate-pulse' : 'text-gold-primary'}`} aria-label="Tempo restante da partida">{timeLeft}s</span>
-          <span className="bg-gold-light-bg px-3 py-1 rounded-full text-sm font-bold border border-border-gold text-gold-accent">Pontos: {score}</span>
-        </div>
-      </div>
-      <section className="quiz-card p-8 relative overflow-hidden">
-        <div className="absolute top-0 left-0 w-full h-2 bg-gray-100">
-          <div className="h-full bg-gold-primary transition-all duration-1000 ease-linear" style={{ width: `${(timeLeft / TOTAL_TIME_SECONDS) * 100}%` }} />
-        </div>
-        <h3 className="text-xl font-bold mb-8 text-text-dark mt-4">{current?.question}</h3>
-        <div className="grid grid-cols-1 gap-3">
-          {current?.options.map(opt => (
-            <button key={opt.id} onClick={() => handleAnswer(opt.id)} disabled={hasAnswered}
-              className={`p-4 border border-border-gold rounded-xl transition-colors text-left font-medium ${hasAnswered ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gold-light-bg active:scale-[0.98]'}`}>
-              {opt.text}
-            </button>
-          ))}
-        </div>
-        {feedback && (
-          <div className={`mt-6 p-4 rounded-xl border ${feedback.isCorrect ? 'bg-green-50 border-green-200 text-green-700' : 'bg-red-50 border-red-200 text-red-700'}`}>
-            {feedback.isCorrect ? <p className="font-bold">Correto! +10 pontos</p> : <div><p className="font-bold mb-1">Incorreto!</p><p className="text-sm">Veja na Bíblia: <span className="font-bold italic">{feedback.reference}</span></p></div>}
-          </div>
-        )}
-      </section>
-      <Link href="/" className="mt-6 inline-block text-sm text-gray-500 hover:underline">Sair do jogo</Link>
-    </main>
-  );
+ const [questions,setQuestions]=useState<Question[]>([]);
+ const [currentIndex,setCurrentIndex]=useState(0);
+ const [timePerQuestion,setTimePerQuestion]=useState(30);
+ const [timeLeft,setTimeLeft]=useState(30);
+ const [gameStarted,setGameStarted]=useState(false);
+ const [showResult,setShowResult]=useState(false);
+ const [hasAnswered,setHasAnswered]=useState(false);
+ const [answerResults,setAnswerResults]=useState<AnswerResult[]>([]);
+ const currentQuestionRef=useRef<Question|null>(null);
+ const hasAnsweredRef=useRef(false);
+ const currentIndexRef=useRef(0);
+ const timerRef=useRef<ReturnType<typeof setInterval>|null>(null);
+ const transitionTimerRef=useRef<ReturnType<typeof setTimeout>|null>(null);
+ const processingRef=useRef(false);
+ const resultsRef=useRef<AnswerResult[]>([]);
+ useEffect(()=>{currentQuestionRef.current=questions[currentIndex]??null;currentIndexRef.current=currentIndex;hasAnsweredRef.current=hasAnswered;},[questions,currentIndex,hasAnswered]);
+ useEffect(()=>()=>{if(timerRef.current)clearInterval(timerRef.current);if(transitionTimerRef.current)clearTimeout(transitionTimerRef.current);},[]);
+ function stopTimer(){if(timerRef.current)clearInterval(timerRef.current);timerRef.current=null;}
+ function finishGame(){stopTimer();setShowResult(true);setGameStarted(false);}
+ function recordResult(result:AnswerResult){resultsRef.current=[...resultsRef.current,result];setAnswerResults(resultsRef.current);}
+ function advanceQuestion(){if(currentIndexRef.current+1>=questions.length){finishGame();return;}const next=currentIndexRef.current+1;currentIndexRef.current=next;setCurrentIndex(next);setHasAnswered(false);hasAnsweredRef.current=false;processingRef.current=false;}
+ function startQuestionTimer(seconds:number){stopTimer();setTimeLeft(seconds);let remaining=seconds;timerRef.current=setInterval(()=>{remaining-=1;setTimeLeft(remaining);if(remaining<=0){stopTimer();const q=currentQuestionRef.current;if(q&&!hasAnsweredRef.current){recordResult({question:q.question,isCorrect:false,reference:q.reference||'Referência não informada'});hasAnsweredRef.current=true;}advanceQuestion();}},1000);}
+ useEffect(()=>{if(gameStarted&&!showResult&&questions.length>0)startQuestionTimer(timePerQuestion);return()=>stopTimer();},[gameStarted,currentIndex,questions.length,timePerQuestion,showResult]);
+ function startGame(){const shuffled=[...(questionsData as Question[])];for(let i=shuffled.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[shuffled[i],shuffled[j]]=[shuffled[j],shuffled[i]];}setQuestions(shuffled.slice(0,QUESTION_COUNT));setCurrentIndex(0);currentIndexRef.current=0;setAnswerResults([]);resultsRef.current=[];setHasAnswered(false);hasAnsweredRef.current=false;processingRef.current=false;setShowResult(false);setGameStarted(true);}
+ function handleAnswer(id:string){if(!gameStarted||processingRef.current||hasAnsweredRef.current)return;const q=currentQuestionRef.current;if(!q)return;processingRef.current=true;hasAnsweredRef.current=true;setHasAnswered(true);stopTimer();recordResult({question:q.question,isCorrect:id===q.answer,reference:q.reference||'Referência não informada'});transitionTimerRef.current=setTimeout(()=>{transitionTimerRef.current=null;advanceQuestion();},250);}
+ async function shareResultCard(){const correct=answerResults.filter(r=>r.isCorrect).length;const errors=answerResults.length-correct;const site=window.location.origin;
+ const svg='<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1920" viewBox="0 0 1080 1920"><defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#241b0d"/><stop offset="1" stop-color="#806022"/></linearGradient></defs><rect width="1080" height="1920" fill="url(#bg)"/><rect x="54" y="54" width="972" height="1812" rx="44" fill="none" stroke="#e7c878" stroke-width="4"/><text x="540" y="270" fill="#f7e7b2" font-family="Arial" font-size="42" letter-spacing="8" text-anchor="middle">DESAFIO BÍBLICO</text><text x="540" y="550" fill="#fff" font-family="Arial" font-size="92" font-weight="700" text-anchor="middle">SOU BOM</text><text x="540" y="665" fill="#f2d17d" font-family="Arial" font-size="92" font-weight="700" text-anchor="middle">DE BÍBLIA!</text><text x="540" y="800" fill="#f7e7b2" font-family="Arial" font-size="38" text-anchor="middle">Meu resultado no Quiz Bíblico</text><rect x="130" y="920" width="360" height="270" rx="28" fill="#163d2b" stroke="#6bc58c" stroke-width="3"/><text x="310" y="1010" fill="#a9edc1" font-family="Arial" font-size="38" text-anchor="middle">ACERTOS</text><text x="310" y="1125" fill="#fff" font-family="Arial" font-size="100" font-weight="700" text-anchor="middle">'+correct+'</text><rect x="590" y="920" width="360" height="270" rx="28" fill="#4a2020" stroke="#ed8b8b" stroke-width="3"/><text x="770" y="1010" fill="#ffb9b9" font-family="Arial" font-size="38" text-anchor="middle">ERROS</text><text x="770" y="1125" fill="#fff" font-family="Arial" font-size="100" font-weight="700" text-anchor="middle">'+errors+'</text><text x="540" y="1390" fill="#fff" font-family="Arial" font-size="36" text-anchor="middle">Conhecimento que cresce com a Palavra.</text><text x="540" y="1600" fill="#f2d17d" font-family="Arial" font-size="34" text-anchor="middle">Faça seu desafio em</text><text x="540" y="1665" fill="#fff" font-family="Arial" font-size="30" text-anchor="middle">'+site.replace(/&/g,'&amp;').replace(/</g,'&lt;')+'</text><text x="540" y="1785" fill="#f7e7b2" font-family="Arial" font-size="26" text-anchor="middle">Quiz Bíblico • Compartilhe seu resultado</text></svg>';
+ const blob=await new Promise<Blob>((resolve,reject)=>{const img=new Image();img.onload=()=>{const canvas=document.createElement('canvas');canvas.width=1080;canvas.height=1920;const ctx=canvas.getContext('2d');if(!ctx){reject(new Error('Canvas indisponível'));return;}ctx.drawImage(img,0,0);canvas.toBlob(file=>file?resolve(file):reject(new Error('Falha ao gerar card')),'image/png');};img.onerror=()=>reject(new Error('Falha ao renderizar card'));img.src=URL.createObjectURL(new Blob([svg],{type:'image/svg+xml;charset=utf-8'}));});
+ const file=new File([blob],'resultado-quiz-biblico.png',{type:'image/png'});if(navigator.share&&navigator.canShare?.({files:[file]})){await navigator.share({title:'Meu resultado no Quiz Bíblico',text:'Sou bom de Bíblia! Faça seu desafio: '+site,files:[file]});}else{const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=file.name;a.click();URL.revokeObjectURL(url);}}
+ if(!gameStarted&&!showResult)return <main className="min-h-screen flex items-center justify-center p-4"><section className="quiz-card max-w-md w-full p-8 text-center"><p className="text-sm font-semibold uppercase tracking-widest text-gold-accent mb-3">Desafio pessoal</p><h1 className="text-3xl font-bold text-gold-primary mb-3">Quiz Bíblico</h1><p className="text-text-dark mb-6">15 perguntas aleatórias. A avaliação só aparece no resultado final.</p><label htmlFor="question-time" className="block text-left text-sm font-semibold text-text-dark mb-2">Tempo para cada pergunta</label><select id="question-time" value={timePerQuestion} onChange={e=>setTimePerQuestion(Number(e.target.value))} className="w-full p-3 border border-border-gold rounded-xl mb-6"><option value={30}>30 segundos por pergunta · 7 min 30 s no total</option><option value={60}>1 minuto por pergunta · 15 min no total</option></select><button onClick={startGame} className="btn-gold w-full">Começar desafio</button><Link href="/" className="block mt-5 text-sm text-gray-500 hover:underline">Voltar ao início</Link></section></main>;
+ if(showResult){const correct=answerResults.filter(r=>r.isCorrect).length;const errors=answerResults.length-correct;return <main className="min-h-screen flex items-center justify-center p-4"><section className="quiz-card max-w-md w-full p-6 text-center"><h2 className="text-3xl font-bold text-gold-primary mb-4">Resultado da partida</h2><div className="grid grid-cols-2 gap-4 mb-6"><div className="rounded-xl border border-green-200 bg-green-50 p-4"><p className="text-sm text-green-700">Acertos</p><p className="text-4xl font-bold text-green-700">{correct}</p></div><div className="rounded-xl border border-red-200 bg-red-50 p-4"><p className="text-sm text-red-700">Erros</p><p className="text-4xl font-bold text-red-700">{errors}</p></div></div><section className="max-w-[220px] mx-auto mb-4"><div className="aspect-[9/16] rounded-2xl border-2 border-[#e7c878] bg-gradient-to-br from-[#241b0d] to-[#806022] p-4 text-white flex flex-col justify-around items-center shadow-xl"><p className="text-[10px] tracking-[0.2em] text-[#f7e7b2]">DESAFIO BÍBLICO</p><div><p className="text-2xl font-black">SOU BOM</p><p className="text-2xl font-black text-[#f2d17d]">DE BÍBLIA!</p></div><div className="w-full grid grid-cols-2 gap-2 text-center"><div className="rounded-lg bg-green-900/70 p-2"><p className="text-[10px]">ACERTOS</p><p className="text-2xl font-bold">{correct}</p></div><div className="rounded-lg bg-red-950/70 p-2"><p className="text-[10px]">ERROS</p><p className="text-2xl font-bold">{errors}</p></div></div><p className="text-center text-[10px] text-[#f7e7b2]">Conhecimento que cresce com a Palavra.</p><p className="text-center text-[9px] break-all">{typeof window!=='undefined'?window.location.origin:''}</p></div></section><button onClick={shareResultCard} className="btn-gold w-full mb-6">Compartilhar card 9:16</button>{errors>0&&<section className="text-left mb-6"><h3 className="font-bold text-gold-primary mb-3">Referências para estudar as questões erradas</h3><ul className="space-y-3">{answerResults.filter(r=>!r.isCorrect).map((r,i)=><li key={i} className="rounded-lg border border-border-gold p-3"><p className="text-sm font-medium mb-1">{r.question}</p><p className="text-sm text-gold-accent">Leia: <span className="font-bold italic">{r.reference}</span></p></li>)}</ul></section>}<div className="space-y-3"><button onClick={startGame} className="btn-gold w-full">Jogar novamente</button><Link href="/" className="block text-center text-sm text-gray-500 hover:underline">Voltar ao início</Link></div></section></main>;}
+ const current=questions[currentIndex];return <main className="min-h-screen p-4 md:p-12 max-w-2xl mx-auto"><div className="flex justify-between items-center mb-8 gap-3"><span className="text-gold-primary font-bold">Questão {currentIndex+1} / {questions.length}</span><span className={`font-bold ${timeLeft<=5?'text-red-500 animate-pulse':'text-gold-primary'}`}>{timeLeft}s</span></div><section className="quiz-card p-8 relative overflow-hidden"><div className="absolute top-0 left-0 w-full h-2 bg-gray-100"><div className="h-full bg-gold-primary transition-all duration-1000 ease-linear" style={{width:`${(timeLeft/timePerQuestion)*100}%`}}/></div><h3 className="text-xl font-bold mb-8 text-text-dark mt-4">{current?.question}</h3><div className="grid grid-cols-1 gap-3">{current?.options.map(o=><button key={o.id} onClick={()=>handleAnswer(o.id)} disabled={hasAnswered} className={`p-4 border border-border-gold rounded-xl transition-colors text-left font-medium ${hasAnswered?'opacity-50 cursor-not-allowed':'hover:bg-gold-light-bg active:scale-[0.98]'}`}>{o.text}</button>)}</div><p className="mt-5 text-xs text-gray-400 text-center">A avaliação será exibida somente ao final do desafio.</p></section><Link href="/" className="mt-6 inline-block text-sm text-gray-500 hover:underline">Sair do jogo</Link></main>;
 }

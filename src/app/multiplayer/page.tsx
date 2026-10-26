@@ -160,6 +160,7 @@ function MultiplayerContent() {
         hasAnsweredRef.current = false;
         setAnsweredCount(0);
         advancingRef.current = false;
+        startTimer(timePerQuestionRef.current);
       });
 
       channel.bind('on-answer', () => {
@@ -173,6 +174,7 @@ function MultiplayerContent() {
       });
 
       channel.bind('game-over', () => {
+        gameEndedRef.current = true;
         setGameStarted(false);
         setShowResults(true);
         setCurrentQuestion(null);
@@ -204,29 +206,18 @@ function MultiplayerContent() {
   }
 
   function handleTimeUp() {
-    if (gameEndedRef.current) return;
-    gameEndedRef.current = true;
+    if (gameEndedRef.current || hasAnsweredRef.current) return;
     const unanswered = currentQuestionRef.current;
-    if (unanswered && !hasAnsweredRef.current) {
+    if (unanswered) {
       setAnswerResults(prev => [...prev, { question: unanswered.question, isCorrect: false, reference: unanswered.reference || 'Referência não informada' }]);
     }
-    setGameStarted(false);
-    setShowResults(true);
-    setCurrentQuestion(null);
+    hasAnsweredRef.current = true;
     setHasAnswered(true);
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-      timerRef.current = null;
-    }
-
-    // O administrador encerra a partida para todos quando o tempo total acaba.
-    if (isAdminRef.current) {
-      fetch('/api/multiplayer/action', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'game-over', roomId }),
-      });
-    }
+    fetch('/api/multiplayer/action', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'on-answer', roomId }),
+    });
   }
 
   async function executeAdvance() {
@@ -252,6 +243,22 @@ function MultiplayerContent() {
     }
   }
 
+  async function shareResultCard() {
+    const correct = answerResults.filter(result => result.isCorrect).length;
+    const errors = answerResults.length - correct;
+    const site = window.location.origin;
+    const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1920" viewBox="0 0 1080 1920"><defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#241b0d"/><stop offset="1" stop-color="#806022"/></linearGradient></defs><rect width="1080" height="1920" fill="url(#bg)"/><rect x="54" y="54" width="972" height="1812" rx="44" fill="none" stroke="#e7c878" stroke-width="4"/><text x="540" y="270" fill="#f7e7b2" font-family="Arial" font-size="42" letter-spacing="8" text-anchor="middle">DESAFIO BÍBLICO</text><text x="540" y="550" fill="#fff" font-family="Arial" font-size="92" font-weight="700" text-anchor="middle">SOU BOM</text><text x="540" y="665" fill="#f2d17d" font-family="Arial" font-size="92" font-weight="700" text-anchor="middle">DE BÍBLIA!</text><text x="540" y="800" fill="#f7e7b2" font-family="Arial" font-size="38" text-anchor="middle">Meu resultado no Quiz Bíblico</text><rect x="130" y="920" width="360" height="270" rx="28" fill="#163d2b" stroke="#6bc58c" stroke-width="3"/><text x="310" y="1010" fill="#a9edc1" font-family="Arial" font-size="38" text-anchor="middle">ACERTOS</text><text x="310" y="1125" fill="#fff" font-family="Arial" font-size="100" font-weight="700" text-anchor="middle">'+correct+'</text><rect x="590" y="920" width="360" height="270" rx="28" fill="#4a2020" stroke="#ed8b8b" stroke-width="3"/><text x="770" y="1010" fill="#ffb9b9" font-family="Arial" font-size="38" text-anchor="middle">ERROS</text><text x="770" y="1125" fill="#fff" font-family="Arial" font-size="100" font-weight="700" text-anchor="middle">'+errors+'</text><text x="540" y="1390" fill="#fff" font-family="Arial" font-size="36" text-anchor="middle">Conhecimento que cresce com a Palavra.</text><text x="540" y="1600" fill="#f2d17d" font-family="Arial" font-size="34" text-anchor="middle">Faça seu desafio em</text><text x="540" y="1665" fill="#fff" font-family="Arial" font-size="30" text-anchor="middle">'+site.replace(/&/g,'&amp;').replace(/</g,'&lt;')+'</text><text x="540" y="1785" fill="#f7e7b2" font-family="Arial" font-size="26" text-anchor="middle">Quiz Bíblico • Compartilhe seu resultado</text></svg>';
+    const blob = await new Promise<Blob>((resolve, reject) => {
+      const image = new Image();
+      image.onload = () => { const canvas = document.createElement('canvas'); canvas.width = 1080; canvas.height = 1920; const ctx = canvas.getContext('2d'); if (!ctx) { reject(new Error('Canvas indisponível')); return; } ctx.drawImage(image, 0, 0); canvas.toBlob(file => file ? resolve(file) : reject(new Error('Falha ao gerar card')), 'image/png'); };
+      image.onerror = () => reject(new Error('Falha ao renderizar card'));
+      image.src = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml;charset=utf-8' }));
+    });
+    const file = new File([blob], 'resultado-quiz-biblico.png', { type: 'image/png' });
+    if (navigator.share && navigator.canShare?.({ files: [file] })) await navigator.share({ title: 'Meu resultado no Quiz Bíblico', text: 'Sou bom de Bíblia! Faça seu desafio: ' + site, files: [file] });
+    else { const url = URL.createObjectURL(blob); const anchor = document.createElement('a'); anchor.href = url; anchor.download = file.name; anchor.click(); URL.revokeObjectURL(url); }
+  }
+
   const joinRoom = async () => {
     if (!name || !roomId) return alert('Informe seu nome e o ID da sala');
     setJoined(true);
@@ -266,11 +273,7 @@ function MultiplayerContent() {
   const startGame = async () => {
     if (players.length < 2) return alert('Aguarde pelo menos mais um jogador');
     
-    let qCount = 15;
-    if (timePerQuestion === 15) qCount = 10;
-    if (timePerQuestion === 30) qCount = 15;
-    if (timePerQuestion === 60) qCount = 20;
-    if (timePerQuestion === 120) qCount = 30;
+    const qCount = 15;
 
     const firstQuestion = questionsData[Math.floor(Math.random() * questionsData.length)];
 
@@ -293,16 +296,12 @@ function MultiplayerContent() {
     hasAnsweredRef.current = true;
 
     const isCorrect = selectedId === currentQuestion.answer;
+    if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
     setAnswerResults(prev => [...prev, { question: currentQuestion.question, isCorrect, reference: currentQuestion.reference || 'Referência não informada' }]);
     const currentPlayer = players.find(p => p.id === myId);
     if (!currentPlayer) return;
     
     const newScore = isCorrect ? currentPlayer.score + 10 : currentPlayer.score;
-
-    setFeedback({
-      isCorrect,
-      reference: isCorrect ? null : currentQuestion.reference
-    });
 
     await fetch('/api/multiplayer/action', {
         method: 'POST',
@@ -388,6 +387,15 @@ function MultiplayerContent() {
                     </ul>
                   </section>
                 )}
+                <section className="max-w-[220px] mx-auto mb-4">
+                  <div className="aspect-[9/16] rounded-2xl border-2 border-[#e7c878] bg-gradient-to-br from-[#241b0d] to-[#806022] p-4 text-white flex flex-col justify-around items-center shadow-xl">
+                    <p className="text-[10px] tracking-[0.2em] text-[#f7e7b2]">DESAFIO BÍBLICO</p>
+                    <div><p className="text-2xl font-black">SOU BOM</p><p className="text-2xl font-black text-[#f2d17d]">DE BÍBLIA!</p></div>
+                    <div className="w-full grid grid-cols-2 gap-2 text-center"><div className="rounded-lg bg-green-900/70 p-2"><p className="text-[10px]">ACERTOS</p><p className="text-2xl font-bold">{answerResults.filter(result => result.isCorrect).length}</p></div><div className="rounded-lg bg-red-950/70 p-2"><p className="text-[10px]">ERROS</p><p className="text-2xl font-bold">{answerResults.filter(result => !result.isCorrect).length}</p></div></div>
+                    <p className="text-center text-[10px] text-[#f7e7b2]">Conhecimento que cresce com a Palavra.</p><p className="text-center text-[9px] break-all">{typeof window !== 'undefined' ? window.location.origin : ''}</p>
+                  </div>
+                </section>
+                <button onClick={shareResultCard} className="btn-gold w-full max-w-md mx-auto mb-8">Compartilhar card 9:16</button>
                 <h4 className="text-xl font-bold text-gold-primary mb-4">Ranking da sala</h4>
                 <div className="max-w-md mx-auto space-y-4 mb-10">
                   {players.sort((a, b) => b.score - a.score).map((p, index) => (
@@ -429,16 +437,14 @@ function MultiplayerContent() {
                 
                 {isAdmin && (
                   <div className="mb-8 w-full max-w-xs text-left">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Tempo total da partida:</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Tempo para cada pergunta:</label>
                     <select 
                       value={timePerQuestion} 
                       onChange={e => setTimePerQuestion(Number(e.target.value))}
                       className="w-full p-2 border border-border-gold rounded-lg focus:ring-gold-primary"
                     >
-                      <option value={15}>15 segundos no total (até 10 perguntas)</option>
-                      <option value={30}>30 segundos no total (até 15 perguntas)</option>
-                      <option value={60}>60 segundos no total (até 20 perguntas)</option>
-                      <option value={120}>120 segundos no total (até 30 perguntas)</option>
+                      <option value={30}>30 segundos por pergunta · 15 perguntas</option>
+                      <option value={60}>1 minuto por pergunta · 15 perguntas</option>
                     </select>
                   </div>
                 )}
@@ -489,18 +495,7 @@ function MultiplayerContent() {
                   ))}
                 </div>
 
-                {feedback && (
-                  <div className={`mt-6 p-4 rounded-lg border ${feedback.isCorrect ? 'bg-green-50 border-green-200 text-green-700' : 'bg-red-50 border-red-200 text-red-700'}`}>
-                    {feedback.isCorrect ? (
-                      <p className="font-bold">Correto! +10 pontos</p>
-                    ) : (
-                      <div>
-                        <p className="font-bold mb-1">Incorreto!</p>
-                        <p className="text-sm">Estude na Bíblia: <span className="font-bold italic">{feedback.reference}</span></p>
-                      </div>
-                    )}
-                  </div>
-                )}
+                <p className="mt-5 text-xs text-gray-400 text-center">A avaliação será exibida somente ao final da partida.</p>
               </div>
             )}
           </div>
@@ -521,7 +516,7 @@ function MultiplayerContent() {
                       {p.name} {p.id === myId && '(Você)'} {p.isGuest && <span className="text-[10px] text-gray-400 font-normal"> - Convidado</span>}
                     </span>
                   </div>
-                  <span className="bg-gold-primary text-white text-xs px-2 py-1 rounded-full">{p.score} pts</span>
+                  {!gameStarted && <span className="bg-gold-primary text-white text-xs px-2 py-1 rounded-full">{p.score} pts</span>}
                 </div>
               ))}
             </div>
