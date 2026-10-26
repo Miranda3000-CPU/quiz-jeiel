@@ -384,14 +384,7 @@ function MultiplayerContent() {
                     </ul>
                   </section>
                 )}
-                <section className="max-w-[220px] mx-auto mb-4">
-                  <div className="aspect-[9/16] rounded-2xl border-2 border-[#e7c878] bg-gradient-to-br from-[#241b0d] to-[#806022] p-4 text-white flex flex-col justify-around items-center shadow-xl">
-                    <p className="text-[10px] tracking-[0.2em] text-[#f7e7b2]">DESAFIO BÍBLICO</p>
-                    <div><p className="text-2xl font-black">SOU BOM</p><p className="text-2xl font-black text-[#f2d17d]">DE BÍBLIA!</p></div>
-                    <div className="w-full grid grid-cols-2 gap-2 text-center"><div className="rounded-lg bg-green-900/70 p-2"><p className="text-[10px]">ACERTOS</p><p className="text-2xl font-bold">{answerResults.filter(result => result.isCorrect).length}</p></div><div className="rounded-lg bg-red-950/70 p-2"><p className="text-[10px]">ERROS</p><p className="text-2xl font-bold">{answerResults.filter(result => !result.isCorrect).length}</p></div></div>
-                    <p className="text-center text-[10px] text-[#f7e7b2]">Conhecimento que cresce com a Palavra.</p><p className="text-center text-[9px] break-all">{typeof window !== 'undefined' ? window.location.origin : ''}</p>
-                  </div>
-                </section>
+                <section className="max-w-[220px] mx-auto mb-4"><div className="aspect-[9/16] rounded-2xl border border-white bg-gradient-to-br from-[#fffaf0] to-[#e8f7f3] p-4 text-[#264653] flex flex-col justify-around items-center shadow-xl"><p className="text-[10px] tracking-[0.2em] text-[#247f7b] font-bold">DESAFIO BÍBLICO</p><div className="text-center"><p className="text-2xl font-serif font-bold">Sou bom</p><p className="text-2xl font-serif font-bold text-[#247f7b]">de Bíblia!</p></div><div className="w-full grid grid-cols-2 gap-2 text-center"><div className="rounded-lg bg-white p-2 border-t-4 border-[#42b8a5]"><p className="text-[10px] text-[#247f7b] font-bold">ACERTOS</p><p className="text-2xl font-bold">{answerResults.filter(result => result.isCorrect).length}</p></div><div className="rounded-lg bg-white p-2 border-t-4 border-[#f29c83]"><p className="text-[10px] text-[#c46e59] font-bold">ERROS</p><p className="text-2xl font-bold">{answerResults.filter(result => !result.isCorrect).length}</p></div></div><p className="text-center text-[10px] text-[#64817e]">Aprender a Palavra é uma jornada.</p><p className="text-center text-[9px] break-all text-[#247f7b]">{typeof window !== "undefined" ? window.location.origin : ""}</p></div></section>
                 <button onClick={shareResultCard} className="btn-gold w-full max-w-md mx-auto mb-8">Compartilhar card 9:16</button>
                 <h4 className="text-xl font-bold text-gold-primary mb-4">Ranking da sala</h4>
                 <div className="max-w-md mx-auto space-y-4 mb-10">
@@ -483,9 +476,8 @@ function MultiplayerContent() {
                       key={opt.id} 
                       onClick={() => handleAnswer(opt.id)}
                       disabled={hasAnswered}
-                      className={`p-4 border border-border-gold rounded-lg transition-colors text-left font-medium
-                        ${hasAnswered ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gold-light-bg active:scale-[0.98]'}
-                      `}
+                      className={`h-[64px] px-4 border border-slate-200 rounded-xl transition-colors text-left font-medium flex items-center bg-white ${hasAnswered ? "opacity-50 cursor-not-allowed" : "hover:bg-teal-50 hover:border-teal-300 active:scale-[0.99]"}`}
+                    
                     >
                       {opt.text}
                     </button>
