@@ -1,65 +1,61 @@
-# Quiz Bíblico Moderno (Multiplayer & Ranking)
+# Quiz Jeiel
 
-Este projeto foi migrado para **Next.js** para suportar partidas multiplayer em tempo real e um sistema de ranking global.
+Quiz bíblico com Next.js, React, Prisma e SQLite. Inclui modo individual, partidas multiplayer via Pusher, autenticação e ranking.
 
-## Novas Funcionalidades
-- **Modo Multiplayer:** Jogue com amigos em tempo real usando WebSockets (via Pusher).
-- **Ranking Global:** Salve suas pontuações em um banco de dados persistente (Neon/PostgreSQL) e veja quem são os melhores.
-- **UI Moderna:** Refatorado com React e Tailwind CSS, mantendo o estilo visual dourado original.
+## Requisitos
 
-## Configuração Local
+- Node.js 22 ou superior
+- npm
+- Credenciais do Pusher para usar o modo multiplayer
 
-### Requisitos
-- Node.js 18+
-- Conta no [Neon.tech](https://neon.tech) (PostgreSQL)
-- Conta no [Pusher.com](https://pusher.com) (Channels)
+## Executar localmente no Ubuntu
 
-### Instalação
-1. Instale as dependências:
-   ```bash
-   npm install
-   ```
-2. Configure as variáveis de ambiente:
-   - Copie `.env.example` para `.env`.
-   - Preencha com suas credenciais do Neon e Pusher.
-3. Prepare o banco de dados:
-   ```bash
-   npx prisma db push
-   ```
-4. Inicie o servidor de desenvolvimento:
-   ```bash
-   npm run dev
-   ```
-
-## Deploy (Vercel)
-Este projeto é totalmente compatível com o deploy na Vercel. Lembre-se de configurar as variáveis de ambiente no painel da Vercel.
-
----
-
-## Como Contribuir
-Você pode contribuir adicionando mais perguntas ao arquivo `src/data/bible.json`.
-
-### Formato das Perguntas
-```json
-{
-  "question": "Quem conduziu o povo de Israel à Terra Prometida após a morte de Moisés?",
-  "options": [
-    { "id": "A", "text": "Calebe" },
-    { "id": "B", "text": "Arão" },
-    { "id": "C", "text": "Josué" },
-    { "id": "D", "text": "Samuel" }
-  ],
-  "answer": "C",
-  "reference": "Josué 1:1-2"
-}
+```bash
+git clone https://github.com/Miranda3000-CPU/quiz-jeiel.git
+cd quiz-jeiel
+npm install
+cp .env.example .env
 ```
 
-## Correções e Sugestões
-Se encontrar alguma pergunta incorreta, envie um e-mail para jeiel.lima.miranda@gmail.com ou faça um Pull Request.
+Configure `DATABASE_URL` no arquivo `.env`. Para desenvolvimento local:
 
-# Changelog
-### Versão 2.0 (Atual)
-- Migração completa para Next.js 16 (App Router).
-- Implementação de Multiplayer com Pusher.
-- Integração de Ranking Global com Neon PostgreSQL.
-- Estilização com Tailwind CSS.
+```dotenv
+DATABASE_URL="file:./prisma/dev.db"
+JWT_SECRET="substitua-por-um-segredo-longo-e-aleatorio"
+EMAIL_PEPPER="substitua-por-outro-segredo-aleatorio"
+```
+
+Gere o Prisma Client, aplique as migrações e inicie:
+
+```bash
+npx prisma generate
+npx prisma migrate deploy
+npm run dev
+```
+
+A aplicação ficará disponível em http://localhost:3000.
+
+## Variáveis para multiplayer
+
+Preencha quando for usar o Pusher:
+
+- `PUSHER_APP_ID`
+- `NEXT_PUBLIC_PUSHER_KEY`
+- `PUSHER_SECRET`
+- `NEXT_PUBLIC_PUSHER_CLUSTER`
+
+Nunca publique o arquivo `.env` nem use os segredos de CI em produção.
+
+## Banco de dados
+
+O banco padrão agora é SQLite. O arquivo local fica em `prisma/dev.db`; o caminho é controlado por `DATABASE_URL`. SQLite grava em disco local, portanto, em produção, mantenha o arquivo em armazenamento persistente e com backup. Não use disco efêmero de ambiente serverless para dados que precisam sobreviver a reinicializações. O banco SQLite também não é compartilhado automaticamente entre várias instâncias da aplicação.
+
+A migração inicial está em `prisma/migrations`. Se já existirem dados no PostgreSQL, esta alteração **não migra registros automaticamente**. Exporte, converta e valide os dados antes de trocar o banco de produção.
+
+## Validação automatizada
+
+O GitHub Actions executa em `ubuntu-latest` a instalação de dependências, geração do Prisma Client, migrações SQLite, ESLint e build de produção em pushes e pull requests.
+
+## Design
+
+A interface usa Soft UI: fundo claro, cartões com sombras suaves, cantos arredondados, campos com efeito inset e acentos violeta/turquesa.
