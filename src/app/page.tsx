@@ -4,8 +4,7 @@ export default function Home() {
   return (
     <main className="min-h-screen flex flex-col items-center justify-center p-4">
       <section className="quiz-card max-w-md w-full p-8 text-center">
-        <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-violet-100 text-3xl shadow-inner">✦</div>
-        <p className="text-sm font-semibold uppercase tracking-[0.2em] text-violet-500 mb-3">Aprenda jogando</p>
+        <p className="text-sm font-semibold uppercase tracking-[0.2em] text-gold-accent mb-3">Aprenda jogando</p>
         <h1 className="text-4xl font-bold text-gold-primary mb-3">Quiz Bíblico</h1>
         <p className="text-text-dark mb-8">Desafie seus conhecimentos bíblicos, descubra referências e divirta-se com amigos.</p>
         <div className="space-y-4 flex flex-col">
