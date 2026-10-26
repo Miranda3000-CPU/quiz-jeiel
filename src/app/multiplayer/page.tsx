@@ -174,6 +174,7 @@ function MultiplayerContent() {
       });
 
       channel.bind('game-over', () => {
+        gameEndedRef.current = true;
         setGameStarted(false);
         setShowResults(true);
         setCurrentQuestion(null);
@@ -515,7 +516,7 @@ function MultiplayerContent() {
                       {p.name} {p.id === myId && '(Você)'} {p.isGuest && <span className="text-[10px] text-gray-400 font-normal"> - Convidado</span>}
                     </span>
                   </div>
-                  <span className="bg-gold-primary text-white text-xs px-2 py-1 rounded-full">{p.score} pts</span>
+                  {!gameStarted && <span className="bg-gold-primary text-white text-xs px-2 py-1 rounded-full">{p.score} pts</span>}
                 </div>
               ))}
             </div>
