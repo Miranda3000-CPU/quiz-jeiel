@@ -160,7 +160,6 @@ function MultiplayerContent() {
         hasAnsweredRef.current = false;
         setAnsweredCount(0);
         advancingRef.current = false;
-        startTimer(timePerQuestionRef.current);
       });
 
       channel.bind('on-answer', () => {
@@ -206,18 +205,16 @@ function MultiplayerContent() {
   }
 
   function handleTimeUp() {
-    if (gameEndedRef.current || hasAnsweredRef.current) return;
+    if (gameEndedRef.current) return;
     const unanswered = currentQuestionRef.current;
-    if (unanswered) {
+    if (unanswered && !hasAnsweredRef.current) {
       setAnswerResults(prev => [...prev, { question: unanswered.question, isCorrect: false, reference: unanswered.reference || 'Referência não informada' }]);
     }
     hasAnsweredRef.current = true;
     setHasAnswered(true);
-    fetch('/api/multiplayer/action', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'on-answer', roomId }),
-    });
+    if (isAdminRef.current) {
+      fetch('/api/multiplayer/action', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'game-over', roomId }) });
+    }
   }
 
   async function executeAdvance() {
@@ -296,7 +293,6 @@ function MultiplayerContent() {
     hasAnsweredRef.current = true;
 
     const isCorrect = selectedId === currentQuestion.answer;
-    if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
     setAnswerResults(prev => [...prev, { question: currentQuestion.question, isCorrect, reference: currentQuestion.reference || 'Referência não informada' }]);
     const currentPlayer = players.find(p => p.id === myId);
     if (!currentPlayer) return;
@@ -437,14 +433,14 @@ function MultiplayerContent() {
                 
                 {isAdmin && (
                   <div className="mb-8 w-full max-w-xs text-left">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Tempo para cada pergunta:</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Tempo total da partida:</label>
                     <select 
                       value={timePerQuestion} 
                       onChange={e => setTimePerQuestion(Number(e.target.value))}
                       className="w-full p-2 border border-border-gold rounded-lg focus:ring-gold-primary"
                     >
-                      <option value={30}>30 segundos por pergunta · 15 perguntas</option>
-                      <option value={60}>1 minuto por pergunta · 15 perguntas</option>
+                      <option value={30}>30 segundos no total · desafio relâmpago</option>
+                      <option value={60}>1 minuto no total · desafio rápido</option>
                     </select>
                   </div>
                 )}
@@ -461,10 +457,10 @@ function MultiplayerContent() {
                 </div>
               </>
             ) : (
-              <div className="w-full">
-                <div className="absolute top-0 left-0 w-full h-2 bg-gray-100">
+              <div className="w-full h-[600px] flex flex-col">
+                <div className="absolute top-0 left-0 w-full h-2 bg-slate-100">
                   <div 
-                    className="h-full bg-gold-primary transition-all duration-1000 ease-linear"
+                    className="h-full bg-teal-500 transition-all duration-1000 ease-linear"
                     style={{ width: `${(timeLeft / timePerQuestion) * 100}%` }}
                   ></div>
                 </div>
@@ -479,7 +475,7 @@ function MultiplayerContent() {
                   </div>
                 </div>
 
-                <h3 className="text-xl font-bold mb-8">{currentQuestion?.question}</h3>
+                <h3 className="text-xl font-bold mb-5 min-h-[112px] max-h-[112px] overflow-y-auto flex items-center">{currentQuestion?.question}</h3>
                 <div className="grid grid-cols-1 gap-3">
                   {currentQuestion?.options.map((opt: any) => (
                     <button 
