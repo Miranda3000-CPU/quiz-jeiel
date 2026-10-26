@@ -16,11 +16,10 @@
 /out/
 /build
 
-# Local SQLite databases (never commit user data)
-/prisma/*.db
-/prisma/*.db-journal
-/prisma/*.sqlite
-/prisma/*.sqlite3
+# Environment files
+.env
+.env.*
+!.env.example
 
 # Misc
 .DS_Store
@@ -32,12 +31,5 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# Environment files
-.env
-.env.*
-!.env.example
-
 # Deploy platforms
 .vercel
-
-/src/generated/prisma
